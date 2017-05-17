@@ -1,0 +1,20 @@
+<RCC>
+    <qresource prefix="/">
+		<file>gui/FirmwareUpdate.qml</file>
+		<file>gui/FirmwareUpdateForm.ui.qml</file>
+		<file>gui/FirmwareUpdateMessage.qml</file>
+		<file>gui/FirmwareUpdateMessageForm.ui.qml</file>
+		<file>gui/FirmwareUpdatePopup.qml</file>
+		<file>gui/Options.qml</file>
+		<file>gui/OptionsForm.ui.qml</file>
+		<file>gui/OtpControl.qml</file>
+		<file>gui/OtpControlForm.ui.qml</file>
+		<file>gui/SecalotControlPanel.qml</file>
+		<file>gui/SimpleMessage.qml</file>
+		<file>gui/SimpleMessageForm.ui.qml</file>
+		<file>gui/SimpleMessagePopup.qml</file>
+		<file>gui/Wiring.qml</file>
+		<file>gui/icon.png</file>
+		<file>qtquickcontrols2.conf</file>		
+    </qresource>
+</RCC>
