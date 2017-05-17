@@ -4,10 +4,10 @@
 
 This repository contains utilities that help operating the device.
 
-##Utilities:
-###prepareFirmwareUpdateFile
+## Utilities:
+### prepareFirmwareUpdateFile
 A python script to prepare Secalot firmware update images.
-###secalotControlPanel
+### secalotControlPanel
 A GUI application. It can be used to:
 
  - Change Secalot OTP settings.
