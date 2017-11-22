@@ -11,7 +11,7 @@ extraLibsPath = os.path.normpath(os.environ['SECALOT_LIBS'])
 ucrtLibPath = os.path.join(extraLibsPath, 'ucrt')
 openglLibPath = os.path.join(extraLibsPath, 'opengl')
 
-a = Analysis(['secalotControlPanel.py'],
+a = Analysis(['./secalotCP/secalotControlPanel.py'],
              pathex=[qtBinPath, ucrtLibPath],
              binaries=[],
              datas=[],

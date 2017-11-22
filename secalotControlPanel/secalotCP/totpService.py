@@ -11,6 +11,7 @@ import struct
 
 READER_NAME = 'Secalot Secalot Dongle'
 
+
 def sendTime(connection):
     response, sw1, sw2 = connection.transmit(
         [0x00, 0xA4, 0x04, 0x00, 0x09, 0x4F, 0x54, 0x50, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
@@ -52,6 +53,7 @@ def main():
                         pass
         except smartcard.pcsc.PCSCExceptions.ListReadersException:
             smartcard.pcsc.PCSCContext.PCSCContext.instance = None
+
 
 if __name__ == "__main__":
     main()

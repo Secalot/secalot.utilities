@@ -10,18 +10,17 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtWidgets import QSystemTrayIcon, QApplication, QMenu, QAction
 
-from deviceFinder import DeviceFinder
-from deviceCommunicator import DeviceCommunicator
-from qmlHelperUtils import QmlHelperUtils
-
 import sys
 import os
 import platform
 
-import resources  
+import secalotCP.resources
+
+from secalotCP.deviceFinder import DeviceFinder
+from secalotCP.deviceCommunicator import DeviceCommunicator
+from secalotCP.qmlHelperUtils import QmlHelperUtils
 
 class SystemTray(QObject):
-
     openAppMenuItemClicked = pyqtSignal()
     exitMenuItemClicked = pyqtSignal()
 
@@ -52,8 +51,8 @@ class SystemTray(QObject):
         if i == QSystemTrayIcon.DoubleClick:
             self.openAppMenuItemClicked.emit()
 
-def main():
 
+def main():
     QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
     global app
@@ -87,7 +86,6 @@ def main():
     app.exec()
 
     deviceCommunicator.cleanup()
-
 
 
 if __name__ == "__main__":

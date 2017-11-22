@@ -123,7 +123,7 @@ Item {
         }
 
         onGetDeviceInfoReady: {
-            firmwareUpdate.setDeviceInfo(deviceID, fwVersion, fsVersion, bootloaderVersion)
+            firmwareUpdate.setDeviceInfo(deviceID, serialNumber, fwVersion, fsVersion, bootloaderVersion)
         }
 
         onFirmwareUpdateInfo: {

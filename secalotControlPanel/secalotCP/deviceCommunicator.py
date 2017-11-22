@@ -7,28 +7,32 @@
 
 from PyQt5.QtCore import Qt, QObject, QThread, pyqtSignal, pyqtSlot, QMetaObject, Q_ARG, QUrl
 import smartcard.System
-import otpControl
-import updateFirmware
-import totpService
 import time
 
-from deviceFinder import DeviceFinder
+import secalotCP.otpControl as otpControl
+import secalotCP.updateFirmware as updateFirmware
+import secalotCP.totpService as totpService
+from secalotCP.deviceFinder import DeviceFinder
+
 
 class DeviceCommunicatorException(Exception):
     def __init__(self, reason):
         super().__init__()
         self.reason = reason
 
-class DeviceCommunicatorImplementation(QObject):
 
+class DeviceCommunicatorImplementation(QObject):
     getOTPSettingsReady = pyqtSignal(str, str, arguments=['numberOfDigits', 'otpType'])
     setOTPSettingsReady = pyqtSignal()
-    getDeviceInfoReady = pyqtSignal(str, str, str, str, arguments=['deviceID', 'fwVersion', 'fsVersion', 'bootloaderVersion'])
+    getDeviceInfoReady = pyqtSignal(str, str, str, str, str,
+                                    arguments=['deviceID', 'serialNumber', 'fwVersion', 'fsVersion',
+                                               'bootloaderVersion'])
     errorOccured = pyqtSignal(str, arguments=['errorMessage'])
     firmwareUpdateInfo = pyqtSignal(str, arguments=['message'])
     firmwareUpdateReady = pyqtSignal()
     firmwareUpdateFailed = pyqtSignal(str, arguments=['errorMessage'])
-    getFirmwareImageInfoReady = pyqtSignal(str, str, str, str, arguments=['deviceID', 'fwVersion', 'fsVersion', 'bootloaderVersion'])
+    getFirmwareImageInfoReady = pyqtSignal(str, str, str, str,
+                                           arguments=['deviceID', 'fwVersion', 'fsVersion', 'bootloaderVersion'])
 
     selectedReader = None
     selectedReaderType = None
@@ -62,7 +66,6 @@ class DeviceCommunicatorImplementation(QObject):
             self.errorOccured.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
-
 
     @pyqtSlot(str, str, str)
     def setOTPSettings(self, numberOfDigits, type, key):
@@ -99,7 +102,9 @@ class DeviceCommunicatorImplementation(QObject):
             connection = self.connectToDevice()
             deviceInfo = updateFirmware.getDeviceInfo(self.getSelectedReaderType(), connection)
 
-            self.getDeviceInfoReady.emit(hex(deviceInfo.deviceID), hex(deviceInfo.firmwareVersion), hex(deviceInfo.fileSystemVersion), hex(deviceInfo.bootloaderVersion))
+            self.getDeviceInfoReady.emit(hex(deviceInfo.deviceID), hex(deviceInfo.serialNumber)[2:].zfill(8),
+                                         hex(deviceInfo.firmwareVersion), hex(deviceInfo.fileSystemVersion),
+                                         hex(deviceInfo.bootloaderVersion))
         except DeviceCommunicatorException as e:
             self.errorOccured.emit(e.reason)
         except otpControl.InvalidCardResponseError:
@@ -140,7 +145,8 @@ class DeviceCommunicatorImplementation(QObject):
                     updateFirmware.switchModes(deviceType, connection)
                     deviceType, connection = updateFirmware.findConnectedDevice()
             else:
-                if (deviceInfo.bootloaderVersion != imageInfo.bootloaderVersion) or deviceInfo.bootloaderIsBootable == False:
+                if (
+                    deviceInfo.bootloaderVersion != imageInfo.bootloaderVersion) or deviceInfo.bootloaderIsBootable == False:
                     self.firmwareUpdateInfo.emit(self.tr('Loading firmware...'))
                     updateFirmware.loadTheImage(connection, blApduList)
                 self.firmwareUpdateInfo.emit(self.tr('Please replug your device.'))
@@ -175,7 +181,8 @@ class DeviceCommunicatorImplementation(QObject):
                 imageInfo = updateFirmware.getUpdateImageInfo(file)
             except Exception:
                 raise DeviceCommunicatorException("Invalid image file format.")
-            self.getFirmwareImageInfoReady.emit(hex(imageInfo.deviceID), hex(imageInfo.firmwareVersion), hex(imageInfo.fileSystemVersion), hex(imageInfo.bootloaderVersion))
+            self.getFirmwareImageInfoReady.emit(hex(imageInfo.deviceID), hex(imageInfo.firmwareVersion),
+                                                hex(imageInfo.fileSystemVersion), hex(imageInfo.bootloaderVersion))
         except DeviceCommunicatorException as e:
             self.errorOccured.emit(e.reason)
         except Exception as e:
@@ -204,19 +211,21 @@ class DeviceCommunicatorImplementation(QObject):
         finally:
             self.disconnectFromDevice(connection)
 
-
     def notSuitableImageInfoCodeToString(self, reasonCode):
-        errorMessages  = [ self.tr('This update is targeting a different device version.'),
-                           self.tr('A downgrade can not be performed.'),
-                           self.tr('A downgrade can not be performed.'),
-                           self.tr('A downgrade can not be performed.'),
-                           self.tr('This update can only be applied together with cleaning a file system.\nPlease tick the "Erase file system" checkbox.'),
-                           self.tr('An update performed on this device was interrutped while cleaning a file system.\nPlease tick the "Erase file system" checkbox.'),
-                           self.tr('Previous update was interrupted. Please continue with the exact same update image file.')]
+        errorMessages = [self.tr('This update is targeting a different device version.'),
+                         self.tr('A downgrade can not be performed.'),
+                         self.tr('A downgrade can not be performed.'),
+                         self.tr('A downgrade can not be performed.'),
+                         self.tr(
+                             'This update can only be applied together with cleaning a file system.\nPlease tick the "Erase file system" checkbox.'),
+                         self.tr(
+                             'An update performed on this device was interrutped while cleaning a file system.\nPlease tick the "Erase file system" checkbox.'),
+                         self.tr(
+                             'Previous update was interrupted. Please continue with the exact same update image file.')]
 
-        return errorMessages[reasonCode-1]
+        return errorMessages[reasonCode - 1]
 
-    def connectToDevice(self, reader = None):
+    def connectToDevice(self, reader=None):
 
         if reader == None:
             selectedReader = self.getSelectedReaderName()
@@ -247,7 +256,6 @@ class DeviceCommunicatorImplementation(QObject):
 
         return self.selectedReaderType
 
-
     def disconnectFromDevice(self, connection):
         try:
             if connection != None:
@@ -255,16 +263,19 @@ class DeviceCommunicatorImplementation(QObject):
         except Exception:
             pass
 
-class DeviceCommunicator(QObject):
 
+class DeviceCommunicator(QObject):
     getOTPSettingsReady = pyqtSignal(str, str, arguments=['numberOfDigits', 'otpType'])
     setOTPSettingsReady = pyqtSignal()
-    getDeviceInfoReady = pyqtSignal(str, str, str, str, arguments=['deviceID', 'fwVersion', 'fsVersion', 'bootloaderVersion'])
+    getDeviceInfoReady = pyqtSignal(str, str, str, str, str,
+                                    arguments=['deviceID', 'serialNumber', 'fwVersion', 'fsVersion',
+                                               'bootloaderVersion'])
     errorOccured = pyqtSignal(str, arguments=['errorMessage'])
     firmwareUpdateInfo = pyqtSignal(str, arguments=['message'])
     firmwareUpdateReady = pyqtSignal()
     firmwareUpdateFailed = pyqtSignal(str, arguments=['errorMessage'])
-    getFirmwareImageInfoReady = pyqtSignal(str, str, str, str, arguments=['deviceID', 'fwVersion', 'fsVersion', 'bootloaderVersion'])
+    getFirmwareImageInfoReady = pyqtSignal(str, str, str, str,
+                                           arguments=['deviceID', 'fwVersion', 'fsVersion', 'bootloaderVersion'])
 
     def __init__(self):
         super().__init__()
@@ -288,10 +299,10 @@ class DeviceCommunicator(QObject):
             self.implementationThread.terminate()
             self.implementationThread.wait(2000)
 
-
     @pyqtSlot(str, str)
     def readerSelected(self, reader, readerType):
-        QMetaObject.invokeMethod(self.implementation, "readerSelected", Qt.QueuedConnection, Q_ARG(str, reader), Q_ARG(str, readerType))
+        QMetaObject.invokeMethod(self.implementation, "readerSelected", Qt.QueuedConnection, Q_ARG(str, reader),
+                                 Q_ARG(str, readerType))
 
     @pyqtSlot()
     def readerDeselected(self):
@@ -303,7 +314,8 @@ class DeviceCommunicator(QObject):
 
     @pyqtSlot(str, str, str)
     def setOTPSettings(self, numberOfDigits, type, key):
-        QMetaObject.invokeMethod(self.implementation, "setOTPSettings", Qt.QueuedConnection, Q_ARG(str, numberOfDigits), Q_ARG(str, type), Q_ARG(str, key))
+        QMetaObject.invokeMethod(self.implementation, "setOTPSettings", Qt.QueuedConnection, Q_ARG(str, numberOfDigits),
+                                 Q_ARG(str, type), Q_ARG(str, key))
 
     @pyqtSlot()
     def getDeviceInfo(self):
@@ -311,7 +323,8 @@ class DeviceCommunicator(QObject):
 
     @pyqtSlot(str, bool)
     def flashFirmware(self, fileName, cleanFileSystemRequested):
-        QMetaObject.invokeMethod(self.implementation, "flashFirmware", Qt.QueuedConnection, Q_ARG(str, fileName), Q_ARG(bool, cleanFileSystemRequested))
+        QMetaObject.invokeMethod(self.implementation, "flashFirmware", Qt.QueuedConnection, Q_ARG(str, fileName),
+                                 Q_ARG(bool, cleanFileSystemRequested))
 
     @pyqtSlot(str)
     def getFirmwareImageInfo(self, fileName):
@@ -319,10 +332,9 @@ class DeviceCommunicator(QObject):
 
     @pyqtSlot(str, str)
     def sendCurrentTimeToDevice(self, reader, readerType):
-        QMetaObject.invokeMethod(self.implementation, "sendCurrentTimeToDevice", Qt.QueuedConnection, Q_ARG(str, reader), Q_ARG(str, readerType))
+        QMetaObject.invokeMethod(self.implementation, "sendCurrentTimeToDevice", Qt.QueuedConnection,
+                                 Q_ARG(str, reader), Q_ARG(str, readerType))
 
     @pyqtSlot()
     def sendCurrentTimeToAllConnectedDevices(self):
         QMetaObject.invokeMethod(self.implementation, "sendCurrentTimeToAllConnectedDevices", Qt.QueuedConnection)
-
-

@@ -6,15 +6,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QSettings
-import updateFirmware
 
 class QmlHelperUtilsException(Exception):
     def __init__(self, reason):
         super().__init__()
         self.reason = reason
 
-class QmlHelperUtils(QObject):
 
+class QmlHelperUtils(QObject):
     currentSettingsReady = pyqtSignal(bool, arguments=['sendCurrentTimeToDevice'])
 
     def __init__(self):

@@ -7,9 +7,9 @@ Usage:
 
 from setuptools import setup
 
-APP = ['secalotControlPanel.py']
+APP = ['secalotCP/secalotControlPanel.py']
 DATA_FILES = []
-OPTIONS = {'iconfile': '/Users/admin/Desktop/secalotControlPanel/gui/icon.icns', 'plist': {'LSUIElement':'1'} }
+OPTIONS = {'iconfile': '/Users/admin/Desktop/secalotControlPanel/gui/icon.icns', 'plist': {'LSUIElement': '1'}}
 
 setup(
     app=APP,

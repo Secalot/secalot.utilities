@@ -7,7 +7,7 @@
 
 import argparse
 import smartcard.System
-import time 
+import time
 import struct
 from collections import namedtuple
 
@@ -22,19 +22,27 @@ CHUNK_LENGTH = 128
 FIRMWARE_CHUNKS = 1664
 BOOTLOADER_CHUNKS = 256
 
+
 class InvalidUpdateImageError(Exception):
     pass
+
+
 class NoReaderFoundError(Exception):
     pass
+
+
 class InvalidCardResponseError(Exception):
     pass
+
 
 class NotSuitableImageError(Exception):
     def __init__(self, reasonCode):
         super().__init__()
         self.reasonCode = reasonCode
 
-DeviceInfo = namedtuple('DeviceInfo', 'deviceID firmwareVersion fileSystemVersion bootloaderVersion fileSystemUpdateInProgress firmwareIsBootable bootloaderIsBootable')
+
+DeviceInfo = namedtuple('DeviceInfo',
+                        'deviceID serialNumber firmwareVersion fileSystemVersion bootloaderVersion fileSystemUpdateInProgress firmwareIsBootable bootloaderIsBootable')
 ImageInfo = namedtuple('ImageInfo', 'deviceID firmwareVersion fileSystemVersion bootloaderVersion')
 
 
@@ -42,23 +50,29 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Update firmware.')
     parser._optionals.title = 'Options'
     subparsers = parser.add_subparsers(dest='subcommand')
-    subparsers.required=True
+    subparsers.required = True
     parserGetDeviceInfo = subparsers.add_parser('getDeviceInfo', help='Get information about a device.')
-    parserGetUpdateImageInfo = subparsers.add_parser('getUpdateImageInfo', help='Get information about an update image.')
+    parserGetUpdateImageInfo = subparsers.add_parser('getUpdateImageInfo',
+                                                     help='Get information about an update image.')
     parserGetUpdateImageInfo._optionals.title = 'Options'
-    parserGetUpdateImageInfo.add_argument('--imageFile', required=True, type=argparse.FileType('rb'), help=('File with an update image.'))
-    parserSwitch = subparsers.add_parser('switch', help='Switch mode. Go to bootloader mode if in firmware mode and vice versa.')
+    parserGetUpdateImageInfo.add_argument('--imageFile', required=True, type=argparse.FileType('rb'),
+                                          help=('File with an update image.'))
+    parserSwitch = subparsers.add_parser('switch',
+                                         help='Switch mode. Go to bootloader mode if in firmware mode and vice versa.')
     parserUpload = subparsers.add_parser('upload', help='Upload a an update image')
     parserUpload._optionals.title = 'Options'
-    parserUpload.add_argument('--imageFile', required=True, type=argparse.FileType('rb'), help=('File with an update image.'))
-    parserUpload.add_argument('--cleanFileSystem', action='store_true', help=('Reinstantiate a clean file system (all data will be lost).'))
-    parserEnableManufacturerBootloader = subparsers.add_parser('enableManufacturerBootloader', help='Enable manufacturer bootloader.')
+    parserUpload.add_argument('--imageFile', required=True, type=argparse.FileType('rb'),
+                              help=('File with an update image.'))
+    parserUpload.add_argument('--cleanFileSystem', action='store_true',
+                              help=('Reinstantiate a clean file system (all data will be lost).'))
+    parserEnableManufacturerBootloader = subparsers.add_parser('enableManufacturerBootloader',
+                                                               help='Enable manufacturer bootloader.')
     args = parser.parse_args()
     return args
 
-def getUpdateImageInfo(imageFile):
 
-    imageFile.seek(0,0)
+def getUpdateImageInfo(imageFile):
+    imageFile.seek(0, 0)
 
     if MAGIC != imageFile.read(4):
         raise InvalidUpdateImageError()
@@ -71,11 +85,12 @@ def getUpdateImageInfo(imageFile):
 
     return imageInfo
 
+
 def updateImageToAPDUs(imageFile, cleanFileSystemRequested):
     fwApduList = []
     blApduList = []
 
-    imageFile.seek(0,0)
+    imageFile.seek(0, 0)
 
     if MAGIC != imageFile.read(4):
         raise InvalidUpdateImageError()
@@ -87,7 +102,7 @@ def updateImageToAPDUs(imageFile, cleanFileSystemRequested):
     fwSignature = imageFile.read(SIGNATURE_LENGTH)
     if len(fwSignature) != SIGNATURE_LENGTH:
         raise InvalidUpdateImageError()
-   
+
     blSignature = imageFile.read(SIGNATURE_LENGTH)
     if len(blSignature) != SIGNATURE_LENGTH:
         raise InvalidUpdateImageError()
@@ -95,17 +110,18 @@ def updateImageToAPDUs(imageFile, cleanFileSystemRequested):
     fwSetImageInfoAPDU = [0x80, 0x02, 0x00, 0x00, HEADER_LENGTH + SIGNATURE_LENGTH] + list(header) + list(fwSignature)
     fwApduList.append(fwSetImageInfoAPDU)
 
-    blSetImageInfoAPDU = [0x80, 0x02, 0x00, 0x00, 8 + SIGNATURE_LENGTH] + list(header[0:4]) + list(header[12:16]) + list(blSignature)
+    blSetImageInfoAPDU = [0x80, 0x02, 0x00, 0x00, 8 + SIGNATURE_LENGTH] + list(header[0:4]) + list(
+        header[12:16]) + list(blSignature)
     blApduList.append(blSetImageInfoAPDU)
 
-    for count in range(0,FIRMWARE_CHUNKS):
+    for count in range(0, FIRMWARE_CHUNKS):
         chunk = imageFile.read(CHUNK_LENGTH)
         if len(chunk) != CHUNK_LENGTH:
             raise InvalidUpdateImageError()
         loadImageDataAPDU = [0x80, 0x03, 0x00, 0x00, CHUNK_LENGTH] + list(chunk)
         fwApduList.append(loadImageDataAPDU)
 
-    for count in range(0,BOOTLOADER_CHUNKS):
+    for count in range(0, BOOTLOADER_CHUNKS):
         chunk = imageFile.read(CHUNK_LENGTH)
         if len(chunk) != CHUNK_LENGTH:
             raise InvalidUpdateImageError()
@@ -121,11 +137,13 @@ def updateImageToAPDUs(imageFile, cleanFileSystemRequested):
 
     return fwApduList, blApduList
 
+
 def findConnectedDevice():
     connectedReaders = smartcard.System.readers()
 
     firmwareReader = next((reader for reader in connectedReaders if reader.name.startswith(READER_NAME)), None)
-    bootloaderReader = next((reader for reader in connectedReaders if reader.name.startswith(BOOTLOADER_READER_NAME) ), None)
+    bootloaderReader = next((reader for reader in connectedReaders if reader.name.startswith(BOOTLOADER_READER_NAME)),
+                            None)
 
     if bootloaderReader != None:
         connection = bootloaderReader.createConnection()
@@ -138,8 +156,8 @@ def findConnectedDevice():
 
     connection.connect()
 
-
     return device, connection
+
 
 def switchModes(device, connection):
     if device == 'bootloader':
@@ -152,7 +170,8 @@ def switchModes(device, connection):
         raise Exception
 
     if device == 'firmware':
-        response, sw1, sw2 = connection.transmit([0x00, 0xA4, 0x04, 0x00, 0x0A, 0x42, 0x4C, 0x44, 0x52, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
+        response, sw1, sw2 = connection.transmit(
+            [0x00, 0xA4, 0x04, 0x00, 0x0A, 0x42, 0x4C, 0x44, 0x52, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
         if sw1 != 0x90 or sw2 != 00:
             raise InvalidCardResponseError()
         response, sw1, sw2 = connection.transmit([0x80, 0x05, 0x00, 0x00])
@@ -180,9 +199,11 @@ def switchModes(device, connection):
 
     print('Mode switched.')
 
+
 def getDeviceInfo(device, connection):
     if device == 'firmware':
-        response, sw1, sw2 = connection.transmit([0x00, 0xA4, 0x04, 0x00, 0x0A, 0x42, 0x4C, 0x44, 0x52, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
+        response, sw1, sw2 = connection.transmit(
+            [0x00, 0xA4, 0x04, 0x00, 0x0A, 0x42, 0x4C, 0x44, 0x52, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
         if sw1 != 0x90 or sw2 != 00:
             raise InvalidCardResponseError()
 
@@ -190,11 +211,12 @@ def getDeviceInfo(device, connection):
     if sw1 != 0x90 or sw2 != 00:
         raise InvalidCardResponseError()
 
-    if len(response) != 19:
+    if len(response) != 23:
         raise InvalidCardResponseError()
 
-    deviceInfo = DeviceInfo._make(struct.unpack('>IIII???', bytes(response)))
+    deviceInfo = DeviceInfo._make(struct.unpack('>IIIII???', bytes(response)))
     return deviceInfo
+
 
 def printDeviceInfo(device, deviceInfo):
     print('')
@@ -206,9 +228,11 @@ def printDeviceInfo(device, deviceInfo):
         raise Exception
 
     print('Device ID: ' + hex(deviceInfo.deviceID))
+    print('Serial number: ' + hex(deviceInfo.serialNumber)[2:].zfill(8))
     print('Firmware version: ' + hex(deviceInfo.firmwareVersion))
     print('File system version: ' + hex(deviceInfo.fileSystemVersion))
     print('Bootloader version: ' + hex(deviceInfo.bootloaderVersion))
+
 
 def printUpdateImageInfo(imageInfo):
     print('')
@@ -216,6 +240,7 @@ def printUpdateImageInfo(imageInfo):
     print('Firmware version: ' + hex(imageInfo.firmwareVersion))
     print('File system version: ' + hex(imageInfo.fileSystemVersion))
     print('Bootloader version: ' + hex(imageInfo.bootloaderVersion))
+
 
 def checkImageInfo(imageInfo, deviceInfo, cleanFileSystemRequested):
     if imageInfo.deviceID != deviceInfo.deviceID:
@@ -231,14 +256,17 @@ def checkImageInfo(imageInfo, deviceInfo, cleanFileSystemRequested):
         print('A downgrade can not be performed.')
         raise NotSuitableImageError(4)
     if cleanFileSystemRequested == False and imageInfo.fileSystemVersion > deviceInfo.fileSystemVersion:
-        print('This update can only be applied together with cleaning a file system. Please use a --cleanFileSystem option.')
+        print(
+            'This update can only be applied together with cleaning a file system. Please use a --cleanFileSystem option.')
         raise NotSuitableImageError(5)
     if cleanFileSystemRequested == False and deviceInfo.fileSystemUpdateInProgress == True:
-        print('An update performed on this device was interrutped while cleaning a file system. Please use a --cleanFileSystem option.')
+        print(
+            'An update performed on this device was interrutped while cleaning a file system. Please use a --cleanFileSystem option.')
         raise NotSuitableImageError(6)
     if (imageInfo.bootloaderVersion != deviceInfo.bootloaderVersion) and deviceInfo.firmwareIsBootable == False:
         print('Previous update was interrupted. Please continue with the exact same update image file.')
         raise NotSuitableImageError(7)
+
 
 def loadTheImage(connection, apduList):
     print('Loading image.')
@@ -248,8 +276,8 @@ def loadTheImage(connection, apduList):
             raise InvalidCardResponseError()
     print('Done.')
 
-def performUpdate(device, connection, fwApduList, blApduList, imageInfo, deviceInfo):
 
+def performUpdate(device, connection, fwApduList, blApduList, imageInfo, deviceInfo):
     if device == 'bootloader':
         if deviceInfo.bootloaderVersion != imageInfo.bootloaderVersion:
             switchModes(device, connection)
@@ -275,7 +303,8 @@ def enableManufacturerBootloader(device, connection):
         print('This command is only available in firmware mode')
         return
 
-    response, sw1, sw2 = connection.transmit([0x00, 0xA4, 0x04, 0x00, 0x0A, 0x42, 0x4C, 0x44, 0x52, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
+    response, sw1, sw2 = connection.transmit(
+        [0x00, 0xA4, 0x04, 0x00, 0x0A, 0x42, 0x4C, 0x44, 0x52, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
     if sw1 != 0x90 or sw2 != 00:
         raise InvalidCardResponseError()
 
@@ -319,5 +348,6 @@ def main():
     except NotSuitableImageError:
         pass
 
+
 if __name__ == "__main__":
-	main()
+    main()

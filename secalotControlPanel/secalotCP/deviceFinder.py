@@ -12,8 +12,8 @@ import time
 READER_NAME = 'Secalot Secalot Dongle'
 BOOTLOADER_READER_NAME = 'Secalot Secalot Bootloader'
 
-class DeviceFinder(QThread):
 
+class DeviceFinder(QThread):
     moreThanOneDeviceConnected = pyqtSignal()
     noDevicesConnected = pyqtSignal()
     oneDeviceConnected = pyqtSignal(str, str, arguments=['readerName', 'readerType'])
@@ -54,10 +54,11 @@ class DeviceFinder(QThread):
 
                     if (len(connectedReaders) > 1) and (len(self.knownReaders) <= 1):
                         self.moreThanOneDeviceConnected.emit()
-                    elif (len(connectedReaders) == 0) and  ((len(self.knownReaders) != 0) or (self.firstRun == True) ):
+                    elif (len(connectedReaders) == 0) and ((len(self.knownReaders) != 0) or (self.firstRun == True)):
                         self.noDevicesConnected.emit()
                         self.firstRun = False
-                    elif (len(connectedReaders) == 1) and  ( (len(self.knownReaders) != 1) or (connectedReaders[0] != self.knownReaders[0]) ):
+                    elif (len(connectedReaders) == 1) and (
+                        (len(self.knownReaders) != 1) or (connectedReaders[0] != self.knownReaders[0])):
                         self.oneDeviceConnected.emit(str(connectedReaders[0]), connectedReaders[0].type)
 
                     self.knownReaders = connectedReaders
@@ -101,4 +102,3 @@ class DeviceFinder(QThread):
         self.firstRun = True
         smartcard.pcsc.PCSCContext.PCSCContext.instance = None
         self.monitoringStopped = False
-

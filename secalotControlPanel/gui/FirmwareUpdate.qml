@@ -35,9 +35,10 @@ FirmwareUpdateForm {
         firmwareUpdatePopup.close()
     }
 
-    function setDeviceInfo(deviceID, firmwareVersion, fileSystemVersion, bootloaderVersion) {
+    function setDeviceInfo(deviceID, serialNumber, firmwareVersion, fileSystemVersion, bootloaderVersion) {
 
         deviceIDValueLabel.text = deviceID
+        serialNumberValueLabel.text = serialNumber
         firmwareVersionValueLabel.text = firmwareVersion
         fileSystemValueLabel.text = fileSystemVersion
         bootloaderVersionValueLabel.text = bootloaderVersion
@@ -46,6 +47,7 @@ FirmwareUpdateForm {
     function clearDeviceInfo() {
 
         deviceIDValueLabel.text = ""
+        serialNumberValueLabel.text = ""
         firmwareVersionValueLabel.text = ""
         fileSystemValueLabel.text = ""
         bootloaderVersionValueLabel.text = ""

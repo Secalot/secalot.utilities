@@ -15,6 +15,7 @@ Item {
     property alias eraseFSCheckBox: eraseFSCheckBox
     property alias selectFirmwareImageButton: selectFirmwareImageButton
     property alias flashFirmwareButton: flashFirmwareButton
+    property alias serialNumberValueLabel: serialNumberValueLabel
 
     ColumnLayout {
         id: mainColumnLayout
@@ -33,7 +34,7 @@ Item {
             GridLayout {
                 id: deviceInfoGridLayout
                 anchors.fill: parent
-                rows: 4
+                rows: 5
                 columns: 2
 
                 Label {
@@ -43,6 +44,18 @@ Item {
 
                 Label {
                     id: deviceIDValueLabel
+                    text: qsTr("")
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillWidth: true
+                }
+
+                Label {
+                    id: serialNumberTextLabel
+                    text: qsTr("Serial number:")
+                }
+
+                Label {
+                    id: serialNumberValueLabel
                     text: qsTr("")
                     horizontalAlignment: Text.AlignHCenter
                     Layout.fillWidth: true
