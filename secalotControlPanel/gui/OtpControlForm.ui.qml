@@ -11,6 +11,9 @@ Item {
     property alias hotpRadioButton: hotpRadioButton
     property alias numberOfDigitsSpinBox: numberOfDigitsSpinBox
     property alias newKeyTextField: newKeyTextField
+    property alias genKeyButton: genKeyButton
+    property alias genKeyLengthSpinBox: genKeyLengthSpinBox
+    property alias genKeyFormatComboBox: genKeyFormatComboBox
 
     ColumnLayout {
         id: mainColumnLayout
@@ -64,67 +67,118 @@ Item {
             Layout.fillWidth: true
             title: qsTr("Set new settings")
 
+            ColumnLayout {
+                id: newSettingsColumnLayout
+                anchors.fill: parent
+                Layout.fillWidth: true
+
+                GridLayout {
+                    id: newSettingsGridLayout
+                    rows: 3
+                    columns: 2
+
+                    Label {
+                        id: otpTypeTextLabel2
+                        text: qsTr("OTP type:")
+                    }
+
+                    RowLayout {
+                        id: otpTypeRowLayout
+                        Layout.fillWidth: true
+
+                        RadioButton {
+                            id: totpRadioButton
+                            text: qsTr("TOTP")
+                            Layout.fillWidth: true
+                            checked: true
+                        }
+
+                        RadioButton {
+                            id: hotpRadioButton
+                            text: qsTr("HOTP")
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    Label {
+                        id: numberOfDigitsTextLabel2
+                        text: qsTr("Number of digits:")
+                    }
+
+                    SpinBox {
+                        id: numberOfDigitsSpinBox
+                        Layout.fillWidth: true
+                        to: 8
+                        from: 6
+                        value: 6
+                    }
+
+                    Label {
+                        id: newKeyLabel
+                        text: qsTr("New key:")
+                    }
+
+                    TextField {
+                        id: newKeyTextField
+                        text: qsTr("")
+                        Layout.fillWidth: true
+                    }
+                }
+
+                Button {
+                    id: setNewSettingsButton
+
+                    text: qsTr("Set")
+                    Layout.fillWidth: true
+                }
+            }
+        }
+
+        GroupBox {
+            id: genKeyGroupBox
+            Layout.fillWidth: true
+            title: qsTr("Generate a key")
+
             GridLayout {
-                id: newSettingsGridLayout
+                id: genKeyGridLayout
                 anchors.fill: parent
                 rows: 2
                 columns: 2
 
                 Label {
-                    id: otpTypeTextLabel2
-                    text: qsTr("OPT type:")
+                    id: genKeyFormatLabel
+                    text: qsTr("Format:")
                 }
 
-                RowLayout {
-                    id: otpTypeRowLayout
+                ComboBox {
+                    id: genKeyFormatComboBox
+                    model: ["Hexadecimal", "Base32"]
+                    currentIndex: 0
                     Layout.fillWidth: true
-
-                    RadioButton {
-                        id: totpRadioButton
-                        text: qsTr("TOTP")
-                        Layout.fillWidth: true
-                        checked: true
-                    }
-
-                    RadioButton {
-                        id: hotpRadioButton
-                        text: qsTr("HOTP")
-                        Layout.fillWidth: true
-                    }
                 }
 
                 Label {
-                    id: numberOfDigitsTextLabel2
-                    text: qsTr("Number of digits:")
+                    id: genKeyLengthLabel
+                    text: qsTr("Length:")
                 }
 
                 SpinBox {
-                    id: numberOfDigitsSpinBox
+                    id: genKeyLengthSpinBox
                     Layout.fillWidth: true
-                    to: 8
-                    from: 6
-                    value: 6
+                    to: 32
+                    from: 10
+                    value: 20
                 }
 
                 Label {
-                    id: newKeyLabel
-                    text: qsTr("New key:")
-                }
-
-                TextField {
-                    id: newKeyTextField
-                    text: qsTr("")
-                    Layout.fillWidth: true
-                }
-
-                Label {
-                    id: emptyLabel
+                    id: genKeyEmptyLabel
                     text: qsTr("")
                 }
 
                 Button {
-                    id: setNewSettingsButton
-                    text: qsTr("Set")
+                    id: genKeyButton
+
+                    text: qsTr("Generate")
                     Layout.fillWidth: true
                 }
             }

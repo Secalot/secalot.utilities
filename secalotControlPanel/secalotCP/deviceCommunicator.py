@@ -24,6 +24,7 @@ class DeviceCommunicatorException(Exception):
 class DeviceCommunicatorImplementation(QObject):
     getOTPSettingsReady = pyqtSignal(str, str, arguments=['numberOfDigits', 'otpType'])
     setOTPSettingsReady = pyqtSignal()
+    generatedOTPKeyReady = pyqtSignal(str, arguments=['key'])
     getDeviceInfoReady = pyqtSignal(str, str, str, str, str,
                                     arguments=['deviceID', 'serialNumber', 'fwVersion', 'fsVersion',
                                                'bootloaderVersion'])
@@ -94,6 +95,15 @@ class DeviceCommunicatorImplementation(QObject):
             self.errorOccured.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
+
+    @pyqtSlot(str, str)
+    def generateOTPKey(self, keyFormat, keyLength):
+        try:
+            keyLength = int(keyLength)
+            key = otpControl.generateKey(keyFormat, keyLength)
+            self.generatedOTPKeyReady.emit(key)
+        except Exception as e:
+            self.errorOccured.emit(self.tr("Generic error."))
 
     @pyqtSlot()
     def getDeviceInfo(self):
@@ -267,6 +277,7 @@ class DeviceCommunicatorImplementation(QObject):
 class DeviceCommunicator(QObject):
     getOTPSettingsReady = pyqtSignal(str, str, arguments=['numberOfDigits', 'otpType'])
     setOTPSettingsReady = pyqtSignal()
+    generatedOTPKeyReady = pyqtSignal(str, arguments=['key'])
     getDeviceInfoReady = pyqtSignal(str, str, str, str, str,
                                     arguments=['deviceID', 'serialNumber', 'fwVersion', 'fsVersion',
                                                'bootloaderVersion'])
@@ -292,6 +303,7 @@ class DeviceCommunicator(QObject):
         self.implementation.firmwareUpdateReady.connect(self.firmwareUpdateReady)
         self.implementation.firmwareUpdateFailed.connect(self.firmwareUpdateFailed)
         self.implementation.getFirmwareImageInfoReady.connect(self.getFirmwareImageInfoReady)
+        self.implementation.generatedOTPKeyReady.connect(self.generatedOTPKeyReady)
 
     def cleanup(self):
         self.implementationThread.quit()
@@ -316,6 +328,11 @@ class DeviceCommunicator(QObject):
     def setOTPSettings(self, numberOfDigits, type, key):
         QMetaObject.invokeMethod(self.implementation, "setOTPSettings", Qt.QueuedConnection, Q_ARG(str, numberOfDigits),
                                  Q_ARG(str, type), Q_ARG(str, key))
+
+    @pyqtSlot(str, str)
+    def generateOTPKey(self, keyFormat, keyLength):
+        QMetaObject.invokeMethod(self.implementation, "generateOTPKey", Qt.QueuedConnection, Q_ARG(str, keyFormat),
+                                 Q_ARG(str, keyLength))
 
     @pyqtSlot()
     def getDeviceInfo(self):

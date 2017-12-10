@@ -60,6 +60,10 @@ Item {
         onSetOtpSettingsRequested: {
             deviceCommunicator.setOTPSettings(numberOfDigits, type, key)
         }
+
+        onGenerateNewKeyRequested: {
+            deviceCommunicator.generateOTPKey(keyFormat, keyLength)
+        }
     }
 
     Connections {
@@ -143,6 +147,10 @@ Item {
 
         onGetFirmwareImageInfoReady: {
             firmwareUpdate.setFirmwareImageInfo(deviceID, fwVersion, fsVersion, bootloaderVersion)
+        }
+
+        onGeneratedOTPKeyReady: {
+            otpControl.setKey(key)
         }
 
         function restartDeviceMonitoring() {

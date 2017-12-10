@@ -12,7 +12,12 @@ OtpControlForm {
         otpTypeValueLabel.text = ""
     }
 
+    function setKey(key) {
+        newKeyTextField.text = key
+    }
+
     signal setOtpSettingsRequested(string numberOfDigits, string type, string key)
+    signal generateNewKeyRequested(string keyFormat, string keyLength)
 
     setNewSettingsButton.onClicked: {
 
@@ -32,5 +37,23 @@ OtpControlForm {
         key = newKeyTextField.text
 
         setOtpSettingsRequested(numberOfDigits, type, key)
+    }
+
+    genKeyButton.onClicked: {
+
+        var keyFormat
+        var keyLength
+
+        keyFormat = genKeyFormatComboBox.currentText
+        keyLength = genKeyLengthSpinBox.value
+
+        if(keyFormat === 'Hexadecimal') {
+            keyFormat = 'hex'
+        }
+        else {
+            keyFormat = 'base32'
+        }
+
+        generateNewKeyRequested(keyFormat, keyLength)
     }
 }

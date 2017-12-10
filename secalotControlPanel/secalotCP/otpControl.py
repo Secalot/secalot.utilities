@@ -7,9 +7,8 @@
 
 import argparse
 import smartcard.System
-import time
-import struct
 import base64
+import os
 
 READER_NAME = 'Secalot Secalot Dongle'
 
@@ -50,9 +49,19 @@ def number_of_digits(string):
         raise argparse.ArgumentTypeError('The value should be between 6 and 8')
     return integer
 
+def key_format(string):
+    if string != 'hex' and string != 'base32':
+        raise argparse.ArgumentTypeError('Please specify hex or base32')
+    return string
+
+def key_length(string):
+    integer = int(string)
+    if integer < 10 or integer > 32:
+        raise argparse.ArgumentTypeError('The value should be between 10 and 32')
+    return integer
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='OPT control.')
+    parser = argparse.ArgumentParser(description='OTP control.')
     parser._optionals.title = 'Options'
     subparsers = parser.add_subparsers(dest='subcommand')
     subparsers.required = True
@@ -64,6 +73,10 @@ def parse_arguments():
     parserSetKeyAndType = subparsers.add_parser('setKeyAndType', help='Set key and type.')
     parserSetKeyAndType.add_argument('key', type=otp_key, help=('Key.'))
     parserSetKeyAndType.add_argument('type', type=otp_type, help=('TOTP or HOTP'))
+    parserGenerateKey = subparsers.add_parser('generateKey', help='Generate an OTP key.')
+    parserGenerateKey.add_argument('keyFormat', type=key_format, help=('Key format: hex or base32.'))
+    parserGenerateKey.add_argument('keyLength', type=key_length, help=('Key length in bytes. 10 to 32.'))
+
     args = parser.parse_args()
     return args
 
@@ -133,6 +146,21 @@ def setKeyAndType(connection, key, type):
         raise InvalidCardResponseError()
 
 
+def generateKey(format, length):
+
+    key = os.urandom(length)
+
+    if format == 'base32':
+        key = base64.b32encode(key)
+        key = key.decode("utf-8")
+        key = key.lower()
+        key = ' '.join(key[i:i+4] for i in range(0,len(key),4))
+    else:
+        key = '0x' + key.hex()
+
+    return key
+
+
 def main():
     arguments = parse_arguments()
 
@@ -148,6 +176,10 @@ def main():
             setNumberOfDigits(connection, arguments.numberOfDigits)
         elif arguments.subcommand == 'setKeyAndType':
             setKeyAndType(connection, arguments.key, arguments.type)
+        elif arguments.subcommand == 'generateKey':
+            key = generateKey(arguments.keyFormat, arguments.keyLength)
+            print('Key: ' + key)
+
     except NoReaderFoundError:
         print("Error: please connect a device.");
     except InvalidCardResponseError:
