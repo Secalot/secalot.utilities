@@ -12,8 +12,9 @@ import time
 import secalotCP.otpControl as otpControl
 import secalotCP.updateFirmware as updateFirmware
 import secalotCP.totpService as totpService
+import secalotCP.ethControl as ethControl
 from secalotCP.deviceFinder import DeviceFinder
-
+from mnemonic import Mnemonic
 
 class DeviceCommunicatorException(Exception):
     def __init__(self, reason):
@@ -34,6 +35,11 @@ class DeviceCommunicatorImplementation(QObject):
     firmwareUpdateFailed = pyqtSignal(str, arguments=['errorMessage'])
     getFirmwareImageInfoReady = pyqtSignal(str, str, str, str,
                                            arguments=['deviceID', 'fwVersion', 'fsVersion', 'bootloaderVersion'])
+    getEthereumWalletInfoReady = pyqtSignal(str, str, str, arguments=['appVersion', 'walletInitialized', 'pinVerified'])
+    wipeoutEthereumWalletReady = pyqtSignal()
+    restoreEthereumWalletReady = pyqtSignal()
+    createEthereumWalletReady = pyqtSignal(str, arguments=['seed'])
+
 
     selectedReader = None
     selectedReaderType = None
@@ -190,13 +196,137 @@ class DeviceCommunicatorImplementation(QObject):
             try:
                 imageInfo = updateFirmware.getUpdateImageInfo(file)
             except Exception:
-                raise DeviceCommunicatorException("Invalid image file format.")
+                raise DeviceCommunicatorException(self.tr("Invalid image file format."))
             self.getFirmwareImageInfoReady.emit(hex(imageInfo.deviceID), hex(imageInfo.firmwareVersion),
                                                 hex(imageInfo.fileSystemVersion), hex(imageInfo.bootloaderVersion))
         except DeviceCommunicatorException as e:
             self.errorOccured.emit(e.reason)
         except Exception as e:
             self.errorOccured.emit(self.tr("Generic error."))
+
+    @pyqtSlot()
+    def getEthereumWalletInfo(self):
+        connection = None
+        try:
+            connection = self.connectToDevice()
+
+            appExists = True
+
+            try:
+                info = ethControl.getInfo(connection)
+            except:
+                appExists = False
+
+            if appExists == False:
+                self.getEthereumWalletInfoReady.emit('0.0', self.tr('unknown'), self.tr('unknown'))
+            else:
+                if info.walletInitialized == True:
+                    initStatus = self.tr('initialized')
+                else:
+                    initStatus = self.tr('not initialized')
+
+                if info.pinVerified == True:
+                    pinStatus = self.tr('verified')
+                else:
+                    pinStatus = self.tr('unverified')
+
+                self.getEthereumWalletInfoReady.emit(info.version, initStatus, pinStatus)
+
+        except DeviceCommunicatorException as e:
+            self.errorOccured.emit(e.reason)
+        except ethControl.InvalidCardResponseError:
+            print(self.tr("Communication failed."))
+        except Exception as e:
+            self.errorOccured.emit(self.tr("An error occurred."))
+        finally:
+            self.disconnectFromDevice(connection)
+
+    @pyqtSlot()
+    def wipeoutEthereumWallet(self):
+        connection = None
+        try:
+            connection = self.connectToDevice()
+
+            ethControl.wipeoutWallet(connection)
+
+            self.wipeoutEthereumWalletReady.emit()
+
+        except DeviceCommunicatorException as e:
+            self.errorOccured.emit(e.reason)
+        except ethControl.InvalidCardResponseError:
+            print(self.tr("Communication failed."))
+        except Exception as e:
+            self.errorOccured.emit(self.tr("An error occurred."))
+        finally:
+            self.disconnectFromDevice(connection)
+
+    @pyqtSlot(str, str, str)
+    def restoreEthereumWallet(self, seed, newPin, repeatPin):
+        connection = None
+        try:
+            connection = self.connectToDevice()
+
+            if newPin != repeatPin:
+                raise DeviceCommunicatorException(self.tr("PIN-codes do not match"))
+
+            try:
+                newPin = ethControl.pin(newPin)
+            except Exception:
+                raise DeviceCommunicatorException(self.tr("Pin length should be between 4 and 32 bytes"))
+
+            try:
+                seed = ethControl.seed(seed)
+            except Exception:
+                raise DeviceCommunicatorException(self.tr("Invalid seed format. \n"
+                                                          " The seed should be either a Bip39 mnemonic \n"
+                                                          "or a hex string of 32 to 64 bytes."))
+
+            ethControl.initWallet(connection, seed, newPin)
+
+            self.restoreEthereumWalletReady.emit()
+
+        except DeviceCommunicatorException as e:
+            self.errorOccured.emit(e.reason)
+        except ethControl.InvalidCardResponseError:
+            print(self.tr("Communication failed."))
+        except Exception as e:
+            self.errorOccured.emit(self.tr("An error occurred."))
+        finally:
+            self.disconnectFromDevice(connection)
+
+    @pyqtSlot(str, str)
+    def createEthereumWallet(self, newPin, repeatPin):
+        connection = None
+        try:
+            connection = self.connectToDevice()
+
+            if newPin != repeatPin:
+                raise DeviceCommunicatorException(self.tr("PIN-codes do not match"))
+
+            try:
+                newPin = ethControl.pin(newPin)
+            except Exception:
+                raise DeviceCommunicatorException(self.tr("Pin length should be between 4 and 32 bytes"))
+
+            mnemonic = Mnemonic('english')
+
+            entropy = ethControl.getRandom(connection, 16)
+            entropy = bytearray(entropy)
+            phrase = mnemonic.to_mnemonic(entropy)
+            seed = mnemonic.to_seed(phrase)
+
+            ethControl.initWallet(connection, seed, newPin)
+
+            self.createEthereumWalletReady.emit(phrase)
+
+        except DeviceCommunicatorException as e:
+            self.errorOccured.emit(e.reason)
+        except ethControl.InvalidCardResponseError:
+            print(self.tr("Communication failed."))
+        except Exception as e:
+            self.errorOccured.emit(self.tr("An error occurred."))
+        finally:
+            self.disconnectFromDevice(connection)
 
     @pyqtSlot(str, str)
     def sendCurrentTimeToDevice(self, reader, readerType):
@@ -287,6 +417,10 @@ class DeviceCommunicator(QObject):
     firmwareUpdateFailed = pyqtSignal(str, arguments=['errorMessage'])
     getFirmwareImageInfoReady = pyqtSignal(str, str, str, str,
                                            arguments=['deviceID', 'fwVersion', 'fsVersion', 'bootloaderVersion'])
+    getEthereumWalletInfoReady = pyqtSignal(str, str, str, arguments=['appVersion', 'walletInitialized', 'pinVerified'])
+    wipeoutEthereumWalletReady = pyqtSignal()
+    restoreEthereumWalletReady = pyqtSignal()
+    createEthereumWalletReady = pyqtSignal(str, arguments=['seed'])
 
     def __init__(self):
         super().__init__()
@@ -297,13 +431,18 @@ class DeviceCommunicator(QObject):
 
         self.implementation.getOTPSettingsReady.connect(self.getOTPSettingsReady)
         self.implementation.setOTPSettingsReady.connect(self.setOTPSettingsReady)
+        self.implementation.generatedOTPKeyReady.connect(self.generatedOTPKeyReady)
         self.implementation.getDeviceInfoReady.connect(self.getDeviceInfoReady)
         self.implementation.errorOccured.connect(self.errorOccured)
         self.implementation.firmwareUpdateInfo.connect(self.firmwareUpdateInfo)
         self.implementation.firmwareUpdateReady.connect(self.firmwareUpdateReady)
         self.implementation.firmwareUpdateFailed.connect(self.firmwareUpdateFailed)
         self.implementation.getFirmwareImageInfoReady.connect(self.getFirmwareImageInfoReady)
-        self.implementation.generatedOTPKeyReady.connect(self.generatedOTPKeyReady)
+        self.implementation.getEthereumWalletInfoReady.connect(self.getEthereumWalletInfoReady)
+        self.implementation.wipeoutEthereumWalletReady.connect(self.wipeoutEthereumWalletReady)
+        self.implementation.restoreEthereumWalletReady.connect(self.restoreEthereumWalletReady)
+        self.implementation.createEthereumWalletReady.connect(self.createEthereumWalletReady)
+
 
     def cleanup(self):
         self.implementationThread.quit()
@@ -346,6 +485,22 @@ class DeviceCommunicator(QObject):
     @pyqtSlot(str)
     def getFirmwareImageInfo(self, fileName):
         QMetaObject.invokeMethod(self.implementation, "getFirmwareImageInfo", Qt.QueuedConnection, Q_ARG(str, fileName))
+
+    @pyqtSlot()
+    def getEthereumWalletInfo(self):
+        QMetaObject.invokeMethod(self.implementation, "getEthereumWalletInfo", Qt.QueuedConnection)
+
+    @pyqtSlot()
+    def wipeoutEthereumWallet(self):
+        QMetaObject.invokeMethod(self.implementation, "wipeoutEthereumWallet", Qt.QueuedConnection)
+
+    @pyqtSlot(str, str, str)
+    def restoreEthereumWallet(self, seed, newPin, repeatPin):
+        QMetaObject.invokeMethod(self.implementation, "restoreEthereumWallet", Qt.QueuedConnection, Q_ARG(str, seed), Q_ARG(str, newPin), Q_ARG(str, repeatPin))
+
+    @pyqtSlot(str, str)
+    def createEthereumWallet(self, newPin, repeatPin):
+        QMetaObject.invokeMethod(self.implementation, "createEthereumWallet", Qt.QueuedConnection, Q_ARG(str, newPin), Q_ARG(str, repeatPin))
 
     @pyqtSlot(str, str)
     def sendCurrentTimeToDevice(self, reader, readerType):

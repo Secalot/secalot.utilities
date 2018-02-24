@@ -7,12 +7,12 @@ ApplicationWindow {
     id:mainWindow
     visible: true
     width: 640
-    height: 640
+    height: 680
 
-    minimumHeight: 640
+    minimumHeight: 680
     minimumWidth: 640
 
-    title: qsTr("Secalot Control Panel 1.0")
+    title: qsTr("Secalot Control Panel 1.1")
 
     onClosing: {
          close.accepted = false
@@ -36,8 +36,9 @@ ApplicationWindow {
 
     function deviceDisconnected() {
 
-        otpControl.clearCurrentOTPSettings()
-        firmwareUpdate.clearDeviceInfo()
+        otpControl.resetGUI()
+        firmwareUpdate.resetGUI()
+        ethereumWallet.resetGUI()
 
         swipeView.disableDeviceRelatedTabs()
 
@@ -48,8 +49,9 @@ ApplicationWindow {
 
     function tooManyDevices() {
 
-        otpControl.clearCurrentOTPSettings()
-        firmwareUpdate.clearDeviceInfo()
+        otpControl.resetGUI()
+        firmwareUpdate.resetGUI()
+        ethereumWallet.resetGUI()
 
         swipeView.disableDeviceRelatedTabs()
 
@@ -75,16 +77,23 @@ ApplicationWindow {
         function disableDeviceRelatedTabs() {
             otpControl.enabled = false
             firmwareUpdate.enabled = false
+            ethereumWallet.enabled = false
         }
 
         function enableDeviceRelatedTabs() {
             otpControl.enabled = true
             firmwareUpdate.enabled = true
+            ethereumWallet.enabled = true
         }
 
         function enableFirmwareModeOnlyRelatedTabs() {
             otpControl.enabled = false
             firmwareUpdate.enabled = true
+            ethereumWallet.enabled = false
+        }
+
+        EthereumWallet {
+            id: ethereumWallet
         }
 
         OtpControl {
@@ -104,7 +113,10 @@ ApplicationWindow {
         id: tabBar
         currentIndex: swipeView.currentIndex
         TabButton {
-            text: qsTr("OTP configuration")
+            text: qsTr("Ethereum")
+        }
+        TabButton {
+            text: qsTr("OTP")
         }
         TabButton {
             text: qsTr("Firmware update")

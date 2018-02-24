@@ -44,6 +44,10 @@ FirmwareUpdateForm {
         bootloaderVersionValueLabel.text = bootloaderVersion
     }
 
+    function resetGUI() {
+        clearDeviceInfo()
+    }
+
     function clearDeviceInfo() {
 
         deviceIDValueLabel.text = ""

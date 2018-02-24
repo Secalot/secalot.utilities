@@ -7,6 +7,10 @@ OtpControlForm {
         otpTypeValueLabel.text = type
     }
 
+    function resetGUI() {
+        clearCurrentOTPSettings()
+    }
+
     function clearCurrentOTPSettings() {
         numberOfDigitsTypeLabel.text = ""
         otpTypeValueLabel.text = ""

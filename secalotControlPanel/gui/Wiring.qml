@@ -81,6 +81,26 @@ Item {
     }
 
     Connections {
+        target: ethereumWallet
+
+        onWipeoutRequested: {
+
+            deviceCommunicator.wipeoutEthereumWallet()
+        }
+
+        onRestoreRequested: {
+
+            deviceCommunicator.restoreEthereumWallet(seed, newPin, repeatPin)
+        }
+
+        onCreateRequested: {
+
+            deviceCommunicator.createEthereumWallet(newPin, repeatPin)
+        }
+
+    }
+
+    Connections {
         target: deviceFinder
 
         onOneDeviceConnected: {
@@ -91,6 +111,7 @@ Item {
 
             if( readerType === 'firmware') {
                 deviceCommunicator.getOTPSettings()
+                deviceCommunicator.getEthereumWalletInfo()
             }
 
             deviceCommunicator.getDeviceInfo()
@@ -151,6 +172,25 @@ Item {
 
         onGeneratedOTPKeyReady: {
             otpControl.setKey(key)
+        }
+
+        onGetEthereumWalletInfoReady: {
+            ethereumWallet.setWalletInfo(appVersion, walletInitialized, pinVerified)
+        }
+
+        onWipeoutEthereumWalletReady: {
+            deviceCommunicator.getEthereumWalletInfo()
+        }
+
+        onRestoreEthereumWalletReady: {
+            ethereumWallet.closePinAndSeedEntryMessagePopup()
+            deviceCommunicator.getEthereumWalletInfo()
+        }
+
+        onCreateEthereumWalletReady: {
+            ethereumWallet.closePinEntryMessagePopup()
+            ethereumWallet.displaySeed(seed)
+            deviceCommunicator.getEthereumWalletInfo()
         }
 
         function restartDeviceMonitoring() {

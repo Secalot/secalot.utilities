@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
+		<file>gui/EthereumWallet.qml</file>
+		<file>gui/EthereumWalletForm.ui.qml</file>
 		<file>gui/FirmwareUpdate.qml</file>
 		<file>gui/FirmwareUpdateForm.ui.qml</file>
 		<file>gui/FirmwareUpdateMessage.qml</file>
@@ -13,6 +15,18 @@
 		<file>gui/SimpleMessage.qml</file>
 		<file>gui/SimpleMessageForm.ui.qml</file>
 		<file>gui/SimpleMessagePopup.qml</file>
+		<file>gui/YesNoMessage.qml</file>
+		<file>gui/YesNoMessageForm.ui.qml</file>
+		<file>gui/YesNoMessagePopup.qml</file>
+		<file>gui/PinAndSeedEntryMessage.qml</file>
+		<file>gui/PinAndSeedEntryMessageForm.ui.qml</file>
+		<file>gui/PinAndSeedEntryMessagePopup.qml</file>
+		<file>gui/PinEntryMessage.qml</file>
+		<file>gui/PinEntryMessageForm.ui.qml</file>
+		<file>gui/PinEntryMessagePopup.qml</file>
+		<file>gui/DisplaySeedMessage.qml</file>
+		<file>gui/DisplaySeedMessageForm.ui.qml</file>
+		<file>gui/DisplaySeedMessagePopup.qml</file>        
 		<file>gui/Wiring.qml</file>
 		<file>gui/icon.png</file>
 		<file>qtquickcontrols2.conf</file>		
