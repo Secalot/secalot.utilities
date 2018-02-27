@@ -1,6 +1,7 @@
 # -*- mode: python -*-
 
 import os
+import importlib
 
 block_cipher = None
 
@@ -11,10 +12,18 @@ extraLibsPath = os.path.normpath(os.environ['SECALOT_LIBS'])
 ucrtLibPath = os.path.join(extraLibsPath, 'ucrt')
 openglLibPath = os.path.join(extraLibsPath, 'opengl')
 
+package_imports = [['mnemonic', ['wordlist/english.txt']]]
+
+datas = []
+
+for package, files in package_imports:
+    proot = os.path.dirname(importlib.import_module(package).__file__)
+    datas.extend((os.path.join(proot, f), package+'/'+os.path.dirname(f)) for f in files)
+    
 a = Analysis(['./secalotCP/secalotControlPanel.py'],
              pathex=[qtBinPath, ucrtLibPath],
              binaries=[],
-             datas=[],
+             datas=datas,
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],

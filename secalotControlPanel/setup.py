@@ -2,11 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='secalotControlPanel',
-    version='1.0',
+    version='1.1',
     packages=['secalotCP'],
     install_requires=[
         'PyQt5>=5.8',
-        'pyscard'
+        'pyscard',
+        'mnemonic'
     ],
     python_requires='>=3.5',
     url='https://github.com/Secalot/secalot.utilities/tree/master/secalotControlPanel',

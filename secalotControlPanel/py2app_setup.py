@@ -9,7 +9,7 @@ from setuptools import setup
 
 APP = ['secalotCP/secalotControlPanel.py']
 DATA_FILES = []
-OPTIONS = {'iconfile': '/Users/admin/Desktop/secalotControlPanel/gui/icon.icns', 'plist': {'LSUIElement': '1'}}
+OPTIONS = {'iconfile': '/Users/admin/Desktop/secalotControlPanel/gui/icon.icns', 'plist': {'LSUIElement': '1'}, 'packages': 'mnemonic'}
 
 setup(
     app=APP,
