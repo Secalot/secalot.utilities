@@ -336,6 +336,8 @@ class DeviceCommunicatorImplementation(QObject):
                 time.sleep(0.2)
                 connection = self.connectToDevice(reader)
                 totpService.sendTime(connection)
+            except Exception as e:
+                pass
             finally:
                 self.disconnectFromDevice(connection)
 
@@ -348,6 +350,8 @@ class DeviceCommunicatorImplementation(QObject):
             for reader in connectedFirmwareReaders:
                 connection = self.connectToDevice(reader.name)
                 totpService.sendTime(connection)
+        except Exception as e:
+            pass
         finally:
             self.disconnectFromDevice(connection)
 
