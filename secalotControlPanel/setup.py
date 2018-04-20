@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='secalotControlPanel',
-    version='1.1',
+    version='1.2',
     packages=['secalotCP'],
     install_requires=[
         'PyQt5>=5.8',

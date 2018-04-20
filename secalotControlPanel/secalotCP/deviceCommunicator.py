@@ -21,6 +21,11 @@ class DeviceCommunicatorException(Exception):
         super().__init__()
         self.reason = reason
 
+class EnglishMnemonic(Mnemonic):
+    @classmethod
+    def list_languages(cls):
+        return ['english']
+
 
 class DeviceCommunicatorImplementation(QObject):
     getOTPSettingsReady = pyqtSignal(str, str, arguments=['numberOfDigits', 'otpType'])
@@ -308,7 +313,7 @@ class DeviceCommunicatorImplementation(QObject):
             except Exception:
                 raise DeviceCommunicatorException(self.tr("Pin length should be between 4 and 32 bytes"))
 
-            mnemonic = Mnemonic('english')
+            mnemonic = EnglishMnemonic('english')
 
             entropy = ethControl.getRandom(connection, 16)
             entropy = bytearray(entropy)

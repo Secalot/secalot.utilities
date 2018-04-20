@@ -28,12 +28,18 @@ class WalletError(Exception):
         self.message = message
 
 
+class EnglishMnemonic(Mnemonic):
+    @classmethod
+    def list_languages(cls):
+        return ['english']
+
+
 AppInfo = namedtuple('AppInfo', 'version walletInitialized pinVerified')
 
 
 def seed(seedText):
 
-    mnemonic = Mnemonic('english')
+    mnemonic = EnglishMnemonic('english')
 
     if seedText.startswith('0X') or seedText.startswith('0x'):
         seedText = seedText[2:]

@@ -28,6 +28,7 @@ ColumnLayout {
             TextField {
                 id: newPinTextField
                 text: qsTr("")
+                echoMode: TextInput.PasswordEchoOnEdit
                 Layout.minimumWidth: 300
                 Layout.fillWidth: true
             }
@@ -40,6 +41,7 @@ ColumnLayout {
             TextField {
                 id: repeatPinTextField
                 text: qsTr("")
+                echoMode: TextInput.PasswordEchoOnEdit
                 Layout.fillWidth: true
             }
         }

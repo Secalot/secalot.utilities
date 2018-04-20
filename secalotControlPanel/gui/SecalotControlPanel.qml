@@ -12,7 +12,7 @@ ApplicationWindow {
     minimumHeight: 680
     minimumWidth: 640
 
-    title: qsTr("Secalot Control Panel 1.1")
+    title: qsTr("Secalot Control Panel 1.2")
 
     onClosing: {
          close.accepted = false
