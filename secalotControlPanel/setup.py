@@ -23,7 +23,9 @@ setup(
         'console_scripts': [
             'scpUpdateFirmware=secalotCP.updateFirmware:main',
             'scpTotpService=secalotCP.totpService:main',
-            'scpOtpControl=secalotCP.otpControl:main',            
+            'scpOtpControl=secalotCP.otpControl:main',
+            'scpEthControl=secalotCP.ethControl:main',
+            'scpSymControl=secalotCP.symControl:main',
         ],
     },    
 )

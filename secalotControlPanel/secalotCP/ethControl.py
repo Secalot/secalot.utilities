@@ -283,7 +283,6 @@ def main():
         elif arguments.subcommand == 'verifyPin':
             verifyPin(connection, arguments.pin)
         elif arguments.subcommand == 'getInfo':
-            random = getRandom(connection, 8)
             info = getInfo(connection)
             print('')
             print('App version: ' + info.version)
