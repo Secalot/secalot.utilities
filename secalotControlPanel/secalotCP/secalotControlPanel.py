@@ -19,6 +19,7 @@ import secalotCP.resources
 from secalotCP.deviceFinder import DeviceFinder
 from secalotCP.deviceCommunicator import DeviceCommunicator
 from secalotCP.qmlHelperUtils import QmlHelperUtils
+from secalotCP.remoteScreen import RemoteScreen
 
 class SystemTray(QObject):
     openAppMenuItemClicked = pyqtSignal()
@@ -62,13 +63,14 @@ def main():
 
     systemTray = SystemTray()
 
-    deviceFinder = DeviceFinder()
-    deviceCommunicator = DeviceCommunicator()
-    qmlHelperUtils = QmlHelperUtils()
-
     os.putenv("QML_DISABLE_DISK_CACHE", "true");
 
     engine = QQmlApplicationEngine()
+
+    deviceFinder = DeviceFinder()
+    deviceCommunicator = DeviceCommunicator()
+    qmlHelperUtils = QmlHelperUtils()
+    remoteScreen = RemoteScreen(engine)
 
     if platform.system() == 'Windows':
         if getattr(sys, 'frozen', False):
@@ -77,6 +79,7 @@ def main():
     engine.rootContext().setContextProperty("deviceCommunicator", deviceCommunicator)
     engine.rootContext().setContextProperty("deviceFinder", deviceFinder)
     engine.rootContext().setContextProperty("qmlHelperUtils", qmlHelperUtils)
+    engine.rootContext().setContextProperty("remoteScreenRoutines", remoteScreen)
     engine.rootContext().setContextProperty("systemTray", systemTray)
 
     engine.load(QUrl("qrc:/gui/SecalotControlPanel.qml"))

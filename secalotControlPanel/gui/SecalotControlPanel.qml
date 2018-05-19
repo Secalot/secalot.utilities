@@ -10,7 +10,9 @@ ApplicationWindow {
     height: 680
 
     minimumHeight: 680
-    minimumWidth: 640
+    minimumWidth: 660
+
+    font.capitalization: Font.MixedCase
 
     title: qsTr("Secalot Control Panel 1.2")
 
@@ -104,6 +106,9 @@ ApplicationWindow {
             id: firmwareUpdate
         }
 
+        RemoteScreen {
+            id: remoteScreen
+        }
         Options {
             id: options
         }
@@ -120,6 +125,9 @@ ApplicationWindow {
         }
         TabButton {
             text: qsTr("Firmware update")
+        }
+        TabButton {
+            text: qsTr("Remote screen")
         }
         TabButton {
             text: qsTr("Options")

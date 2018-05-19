@@ -7,6 +7,8 @@ Item {
 
     Component.onCompleted: {
         qmlHelperUtils.getCurrentSettings()
+
+        remoteScreenRoutines.isMobilePhoneBinded()
     }
 
     Connections {
@@ -96,6 +98,25 @@ Item {
         onCreateRequested: {
 
             deviceCommunicator.createEthereumWallet(newPin, repeatPin)
+        }
+
+    }
+
+    Connections {
+        target: remoteScreen
+
+        onMobilePhoneBindingStarted: {
+
+            remoteScreenRoutines.startMobilePhoneBinding()
+        }
+
+        onMobilePhoneBindingFinished: {
+
+            remoteScreenRoutines.finishMobilePhoneBinding()
+        }
+
+        onMobilePhoneUnbind: {
+            remoteScreenRoutines.unbindMobilePhone()
         }
 
     }
@@ -198,4 +219,30 @@ Item {
             simpleMessagePopup.onClosed.disconnect(restartDeviceMonitoring)
         }
     }
+
+    Connections {
+        target: remoteScreenRoutines
+
+        onErrorOccured: {
+            mainWindow.openSimplePopup(errorMessage)
+        }
+
+        onIsMobilePhoneBindedReady: {
+            remoteScreen.setRemoteScreenInfo(mobilePhoneBinded)
+        }
+
+        onStartMobilePhoneBindingReady: {
+            remoteScreen.displayBindingInfo()
+        }
+
+        onUnbindMobilePhonetReady: {
+            remoteScreenRoutines.isMobilePhoneBinded()
+        }
+
+        onFinishMobilePhoneBindingReady: {
+            remoteScreenRoutines.isMobilePhoneBinded()
+        }
+
+    }
+
 }

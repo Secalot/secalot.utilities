@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
+		<file>gui/RemoteScreen.qml</file>
+		<file>gui/RemoteScreenForm.ui.qml</file>
 		<file>gui/EthereumWallet.qml</file>
 		<file>gui/EthereumWalletForm.ui.qml</file>
 		<file>gui/FirmwareUpdate.qml</file>
@@ -27,6 +29,9 @@
 		<file>gui/DisplaySeedMessage.qml</file>
 		<file>gui/DisplaySeedMessageForm.ui.qml</file>
 		<file>gui/DisplaySeedMessagePopup.qml</file>        
+		<file>gui/BindingMessage.qml</file>
+		<file>gui/BindingMessageForm.ui.qml</file>
+		<file>gui/BindingMessagePopup.qml</file>        
 		<file>gui/Wiring.qml</file>
 		<file>gui/icon.png</file>
 		<file>qtquickcontrols2.conf</file>		
