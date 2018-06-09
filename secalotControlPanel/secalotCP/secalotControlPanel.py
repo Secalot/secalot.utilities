@@ -70,7 +70,7 @@ def main():
     deviceFinder = DeviceFinder()
     deviceCommunicator = DeviceCommunicator()
     qmlHelperUtils = QmlHelperUtils()
-    remoteScreen = RemoteScreen(engine)
+    remoteScreen = RemoteScreen(engine, deviceCommunicator)
 
     if platform.system() == 'Windows':
         if getattr(sys, 'frozen', False):

@@ -28,6 +28,10 @@ class EnglishMnemonic(Mnemonic):
 
 
 class DeviceCommunicatorImplementation(QObject):
+
+    remoteScreenErrorOccured = pyqtSignal(str, arguments=['errorMessage'])
+    remoteScreenCommandSent = pyqtSignal(bytes, arguments=['response'])
+
     getOTPSettingsReady = pyqtSignal(str, str, arguments=['numberOfDigits', 'otpType'])
     setOTPSettingsReady = pyqtSignal()
     generatedOTPKeyReady = pyqtSignal(str, arguments=['key'])
@@ -62,6 +66,22 @@ class DeviceCommunicatorImplementation(QObject):
     def readerDeselected(self):
         self.selectedReader = None
         self.selectedReaderType = None
+
+    @pyqtSlot(bytes)
+    def sendRemoteScreenCommand(self, command):
+        connection = None
+        try:
+            connection = self.connectToDevice()
+            response, sw1, sw2 = connection.transmit(list(command))
+            response = response + [sw1] + [sw2]
+            self.remoteScreenCommandSent.emit(bytes(response))
+        except DeviceCommunicatorException as e:
+            self.remoteScreenErrorOccured.emit("Device not connected")
+        except Exception as e:
+            self.remoteScreenErrorOccured.emit(self.tr("Failed to communicate with the device"))
+        finally:
+            self.disconnectFromDevice(connection)
+
 
     @pyqtSlot()
     def getOTPSettings(self):
@@ -414,6 +434,8 @@ class DeviceCommunicatorImplementation(QObject):
 
 
 class DeviceCommunicator(QObject):
+    remoteScreenErrorOccured = pyqtSignal(str, arguments=['errorMessage'])
+    remoteScreenCommandSent = pyqtSignal(bytes, arguments=['response'])
     getOTPSettingsReady = pyqtSignal(str, str, arguments=['numberOfDigits', 'otpType'])
     setOTPSettingsReady = pyqtSignal()
     generatedOTPKeyReady = pyqtSignal(str, arguments=['key'])
@@ -438,6 +460,8 @@ class DeviceCommunicator(QObject):
         self.implementation.moveToThread(self.implementationThread)
         self.implementationThread.start()
 
+        self.implementation.remoteScreenErrorOccured.connect(self.remoteScreenErrorOccured)
+        self.implementation.remoteScreenCommandSent.connect(self.remoteScreenCommandSent)
         self.implementation.getOTPSettingsReady.connect(self.getOTPSettingsReady)
         self.implementation.setOTPSettingsReady.connect(self.setOTPSettingsReady)
         self.implementation.generatedOTPKeyReady.connect(self.generatedOTPKeyReady)
@@ -467,6 +491,10 @@ class DeviceCommunicator(QObject):
     @pyqtSlot()
     def readerDeselected(self):
         QMetaObject.invokeMethod(self.implementation, "readerDeselected", Qt.QueuedConnection)
+
+    @pyqtSlot(bytes)
+    def sendRemoteScreenCommand(self, command):
+        QMetaObject.invokeMethod(self.implementation, "sendRemoteScreenCommand", Qt.QueuedConnection, Q_ARG(bytes, command))
 
     @pyqtSlot()
     def getOTPSettings(self):

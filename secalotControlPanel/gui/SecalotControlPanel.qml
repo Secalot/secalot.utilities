@@ -127,7 +127,7 @@ ApplicationWindow {
             text: qsTr("Firmware update")
         }
         TabButton {
-            text: qsTr("Remote screen")
+            text: qsTr("RemoteScreen")
         }
         TabButton {
             text: qsTr("Options")

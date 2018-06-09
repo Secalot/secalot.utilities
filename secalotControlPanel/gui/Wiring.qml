@@ -229,6 +229,16 @@ Item {
 
         onIsMobilePhoneBindedReady: {
             remoteScreen.setRemoteScreenInfo(mobilePhoneBinded)
+
+            if(mobilePhoneBinded === "Yes") {
+                remoteScreenRoutines.startServer()
+                remoteScreenRoutines.startZeroConf()
+            }
+            else {
+                remoteScreenRoutines.stopServer()
+                remoteScreenRoutines.stopZeroConf()
+            }
+
         }
 
         onStartMobilePhoneBindingReady: {

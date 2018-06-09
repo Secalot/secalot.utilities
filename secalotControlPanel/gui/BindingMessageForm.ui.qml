@@ -12,7 +12,7 @@ ColumnLayout {
 
     Label {
         id: instructionsLabel
-        text: qsTr("<b>Please scan the QR code displayed below using Secalot Remote Screen app on your mobile phone.</b>")
+        text: qsTr("<b>Please scan the QR code displayed below using Secalot RemoteScreen app on your mobile phone.</b>")
         Layout.maximumWidth: 400
         wrapMode: Text.WordWrap
         textFormat: Text.RichText
