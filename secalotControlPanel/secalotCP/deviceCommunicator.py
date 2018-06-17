@@ -13,6 +13,7 @@ import secalotCP.otpControl as otpControl
 import secalotCP.updateFirmware as updateFirmware
 import secalotCP.totpService as totpService
 import secalotCP.ethControl as ethControl
+import secalotCP.sslControl as sslControl
 from secalotCP.deviceFinder import DeviceFinder
 from mnemonic import Mnemonic
 
@@ -48,6 +49,8 @@ class DeviceCommunicatorImplementation(QObject):
     wipeoutEthereumWalletReady = pyqtSignal()
     restoreEthereumWalletReady = pyqtSignal()
     createEthereumWalletReady = pyqtSignal(str, arguments=['seed'])
+    getSslPublicKeyFingerprintReady = pyqtSignal(str, arguments=['fingerprint'])
+    getSslPublicKeyReady = pyqtSignal(str, arguments=['publicKey'])
 
 
     selectedReader = None
@@ -353,6 +356,39 @@ class DeviceCommunicatorImplementation(QObject):
         finally:
             self.disconnectFromDevice(connection)
 
+
+    @pyqtSlot()
+    def getSslPublicKeyFingerprint(self):
+        connection = None
+        try:
+            connection = self.connectToDevice()
+            fingerprint = sslControl.getPublicKeyFingerprint(connection)
+
+            self.getSslPublicKeyFingerprintReady.emit(fingerprint)
+
+        except DeviceCommunicatorException as e:
+            self.errorOccured.emit(e.reason)
+        except Exception as e:
+            self.errorOccured.emit(self.tr("An error occurred."))
+        finally:
+            self.disconnectFromDevice(connection)
+
+    @pyqtSlot()
+    def getSslPublicKey(self):
+        connection = None
+        try:
+            connection = self.connectToDevice()
+            publicKey = sslControl.getPublicKey(connection)
+
+            self.getSslPublicKeyReady.emit(publicKey)
+
+        except DeviceCommunicatorException as e:
+            self.errorOccured.emit(e.reason)
+        except Exception as e:
+            self.errorOccured.emit(self.tr("An error occurred."))
+        finally:
+            self.disconnectFromDevice(connection)
+
     @pyqtSlot(str, str)
     def sendCurrentTimeToDevice(self, reader, readerType):
         connection = None
@@ -452,6 +488,8 @@ class DeviceCommunicator(QObject):
     wipeoutEthereumWalletReady = pyqtSignal()
     restoreEthereumWalletReady = pyqtSignal()
     createEthereumWalletReady = pyqtSignal(str, arguments=['seed'])
+    getSslPublicKeyFingerprintReady = pyqtSignal(str, arguments=['fingerprint'])
+    getSslPublicKeyReady = pyqtSignal(str, arguments=['publicKey'])
 
     def __init__(self):
         super().__init__()
@@ -475,6 +513,8 @@ class DeviceCommunicator(QObject):
         self.implementation.wipeoutEthereumWalletReady.connect(self.wipeoutEthereumWalletReady)
         self.implementation.restoreEthereumWalletReady.connect(self.restoreEthereumWalletReady)
         self.implementation.createEthereumWalletReady.connect(self.createEthereumWalletReady)
+        self.implementation.getSslPublicKeyFingerprintReady.connect(self.getSslPublicKeyFingerprintReady)
+        self.implementation.getSslPublicKeyReady.connect(self.getSslPublicKeyReady)
 
 
     def cleanup(self):
@@ -538,6 +578,14 @@ class DeviceCommunicator(QObject):
     @pyqtSlot(str, str)
     def createEthereumWallet(self, newPin, repeatPin):
         QMetaObject.invokeMethod(self.implementation, "createEthereumWallet", Qt.QueuedConnection, Q_ARG(str, newPin), Q_ARG(str, repeatPin))
+
+    @pyqtSlot()
+    def getSslPublicKeyFingerprint(self):
+        QMetaObject.invokeMethod(self.implementation, "getSslPublicKeyFingerprint", Qt.QueuedConnection)
+
+    @pyqtSlot()
+    def getSslPublicKey(self):
+        QMetaObject.invokeMethod(self.implementation, "getSslPublicKey", Qt.QueuedConnection)
 
     @pyqtSlot(str, str)
     def sendCurrentTimeToDevice(self, reader, readerType):

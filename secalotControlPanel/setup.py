@@ -24,6 +24,8 @@ setup(
             'scpUpdateFirmware=secalotCP.updateFirmware:main',
             'scpTotpService=secalotCP.totpService:main',
             'scpOtpControl=secalotCP.otpControl:main',            
+            'scpEthControl=secalotCP.ethControl:main',
+            'scpSslControl=secalotCP.sslControl:main',
         ],
     },    
 )

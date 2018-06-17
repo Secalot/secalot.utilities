@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.3
 
 Item {
     id: mainItem
+    property alias fingerprintValueLabel: fingerprintValueLabel
     property alias bindingStatusValueLabel: bindingStatusValueLabel
     property alias bindMobilePhoneButton: bindMobilePhoneButton
     property alias unbindMobilePhoneButton: unbindMobilePhoneButton
@@ -27,7 +28,7 @@ Item {
             GridLayout {
                 id: remoteScreenInfoGridLayout
                 anchors.fill: parent
-                rows: 1
+                rows: 2
                 columns: 2
 
                 Label {
@@ -37,6 +38,18 @@ Item {
 
                 Label {
                     id: bindingStatusValueLabel
+                    text: qsTr("")
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.fillWidth: true
+                }
+
+                Label {
+                    id: fingerprintTextLabel
+                    text: qsTr("Device fingerprint:")
+                }
+
+                Label {
+                    id: fingerprintValueLabel
                     text: qsTr("")
                     horizontalAlignment: Text.AlignHCenter
                     Layout.fillWidth: true

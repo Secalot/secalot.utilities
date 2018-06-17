@@ -108,6 +108,7 @@ class RemoteScreen(QObject):
     stopZeroConfReady = pyqtSignal()
 
     sendRemoteScreenCommand = pyqtSignal(bytes)
+    getDevicePublicKey = pyqtSignal()
 
     def __init__(self, engine, deviceCommunicator):
 
@@ -116,7 +117,7 @@ class RemoteScreen(QObject):
         self.qrCodeImageProvider = self.QRCodeImageProvider()
 
         self.guid = None
-        self.key = None
+        self.pskKey = None
         self.qrCodeImageProvider.qrCodeImageData = None
 
         self.server = None
@@ -134,6 +135,8 @@ class RemoteScreen(QObject):
         self.deviceCommunicator.remoteScreenCommandSent.connect(self.remoteScreenCommandSent)
 
         self.sendRemoteScreenCommand.connect(deviceCommunicator.sendRemoteScreenCommand)
+
+        self.getDevicePublicKey.connect(self.deviceCommunicator.getSslPublicKey)
 
     @pyqtSlot()
     def isMobilePhoneBinded(self):
@@ -171,10 +174,27 @@ class RemoteScreen(QObject):
     def startMobilePhoneBinding(self):
 
         try:
-            self.guid = str(uuid.uuid4())
-            self.key = os.urandom(32).hex()
+            self.clearMobilePhoneBindingState()
 
-            jsonString = json.dumps({"guid": self.guid, "key": self.key})
+            self.guid = str(uuid.uuid4())
+            self.pskKey = os.urandom(32).hex()
+
+            self.deviceCommunicator.getSslPublicKeyReady.connect(self.startMobilePhoneBinding2nd)
+
+            self.getDevicePublicKey.emit()
+
+        except Exception as e:
+            self.clearMobilePhoneBindingState()
+            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+
+    @pyqtSlot(str)
+    def startMobilePhoneBinding2nd(self, publicKey):
+
+        try:
+
+            self.deviceCommunicator.getSslPublicKeyReady.disconnect(self.startMobilePhoneBinding2nd)
+
+            jsonString = json.dumps({"guid": self.guid, "pskKey": self.pskKey, "publicKey": publicKey})
 
             image = qrcode.make(jsonString)
             output = BytesIO()
@@ -189,10 +209,11 @@ class RemoteScreen(QObject):
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
 
 
+
     def clearMobilePhoneBindingState(self):
         try:
             self.guid = None
-            self.key = None
+            self.pskKey = None
             self.qrCodeImageProvider.qrCodeImageData = None
         except Exception as e:
             pass
@@ -204,7 +225,7 @@ class RemoteScreen(QObject):
             settings = QSettings('Secalot', 'Secalot Control Panel')
 
             settings.setValue('removeScreenUID', self.guid)
-            settings.setValue('removeScreenKey', self.key)
+            settings.setValue('removeScreenKey', self.pskKey)
             settings.setValue('mobilePhoneBinded', True)
 
             self.finishMobilePhoneBindingReady.emit()

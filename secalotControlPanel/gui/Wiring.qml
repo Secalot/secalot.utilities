@@ -133,6 +133,7 @@ Item {
             if( readerType === 'firmware') {
                 deviceCommunicator.getOTPSettings()
                 deviceCommunicator.getEthereumWalletInfo()
+                deviceCommunicator.getSslPublicKeyFingerprint()
             }
 
             deviceCommunicator.getDeviceInfo()
@@ -212,6 +213,10 @@ Item {
             ethereumWallet.closePinEntryMessagePopup()
             ethereumWallet.displaySeed(seed)
             deviceCommunicator.getEthereumWalletInfo()
+        }
+
+        onGetSslPublicKeyFingerprintReady: {
+            remoteScreen.setFingerprint(fingerprint)
         }
 
         function restartDeviceMonitoring() {

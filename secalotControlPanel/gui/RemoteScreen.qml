@@ -48,4 +48,16 @@ RemoteScreenForm {
         mobilePhoneUnbind()
     }
 
+    function resetGUI() {
+        clearFingerprint()
+    }
+
+    function clearFingerprint() {
+        fingerprintValueLabel.text = ""
+    }
+
+    function setFingerprint(fingerprint) {
+        fingerprintValueLabel.text = fingerprint
+    }
+
 }

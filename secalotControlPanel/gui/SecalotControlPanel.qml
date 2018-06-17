@@ -41,6 +41,7 @@ ApplicationWindow {
         otpControl.resetGUI()
         firmwareUpdate.resetGUI()
         ethereumWallet.resetGUI()
+        remoteScreen.resetGUI()
 
         swipeView.disableDeviceRelatedTabs()
 
@@ -54,6 +55,7 @@ ApplicationWindow {
         otpControl.resetGUI()
         firmwareUpdate.resetGUI()
         ethereumWallet.resetGUI()
+        remoteScreen.resetGUI()
 
         swipeView.disableDeviceRelatedTabs()
 
@@ -80,18 +82,21 @@ ApplicationWindow {
             otpControl.enabled = false
             firmwareUpdate.enabled = false
             ethereumWallet.enabled = false
+            remoteScreen.enabled = false
         }
 
         function enableDeviceRelatedTabs() {
             otpControl.enabled = true
             firmwareUpdate.enabled = true
             ethereumWallet.enabled = true
+            remoteScreen.enabled = true
         }
 
         function enableFirmwareModeOnlyRelatedTabs() {
             otpControl.enabled = false
             firmwareUpdate.enabled = true
             ethereumWallet.enabled = false
+            remoteScreen.enabled = false
         }
 
         EthereumWallet {
