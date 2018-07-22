@@ -362,6 +362,12 @@ class DeviceCommunicatorImplementation(QObject):
         connection = None
         try:
             connection = self.connectToDevice()
+
+            try:
+                sslControl.selectApp(connection)
+            except sslControl.InvalidCardResponseError as e:
+                return
+
             fingerprint = sslControl.getPublicKeyFingerprint(connection)
 
             self.getSslPublicKeyFingerprintReady.emit(fingerprint)

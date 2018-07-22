@@ -54,7 +54,7 @@ class SystemTray(QObject):
 
 
 def main():
-    QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    # QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
     global app
     app = QApplication(sys.argv)
@@ -63,7 +63,7 @@ def main():
 
     systemTray = SystemTray()
 
-    os.putenv("QML_DISABLE_DISK_CACHE", "true");
+    #os.putenv("QML_DISABLE_DISK_CACHE", "true");
 
     engine = QQmlApplicationEngine()
 
@@ -75,6 +75,7 @@ def main():
     if platform.system() == 'Windows':
         if getattr(sys, 'frozen', False):
             engine.addImportPath(sys._MEIPASS)
+            os.environ["PATH"] = sys._MEIPASS
 
     engine.rootContext().setContextProperty("deviceCommunicator", deviceCommunicator)
     engine.rootContext().setContextProperty("deviceFinder", deviceFinder)

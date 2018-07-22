@@ -216,6 +216,7 @@ Item {
         }
 
         onGetSslPublicKeyFingerprintReady: {
+            remoteScreen.supportedDeviceConnected()
             remoteScreen.setFingerprint(fingerprint)
         }
 
@@ -233,7 +234,7 @@ Item {
         }
 
         onIsMobilePhoneBindedReady: {
-            remoteScreen.setRemoteScreenInfo(mobilePhoneBinded)
+            remoteScreen.setMobilePhoneBindingInfo(mobilePhoneBinded)
 
             if(mobilePhoneBinded === "Yes") {
                 remoteScreenRoutines.startServer()
