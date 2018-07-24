@@ -5,10 +5,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QSettings, QSize
+from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QSettings, QSize, QThread, QCoreApplication, QMetaObject, Q_ARG
 from PyQt5.QtQuick import QQuickImageProvider
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtNetwork import QTcpServer, QTcpSocket, QHostAddress, QSslConfiguration, QSslCipher, QSslSocket, QSslError, QSslPreSharedKeyAuthenticator
+from PyQt5.QtNetwork import QTcpServer, QTcpSocket, QHostAddress
 
 import uuid
 import os
@@ -21,6 +21,9 @@ import base64
 
 from zeroconf import ServiceInfo, Zeroconf, DNSQuestion, _TYPE_PTR, _TYPE_ANY
 
+import socket
+from tlslite import *
+
 
 class RemoteScreenException(Exception):
     def __init__(self, reason):
@@ -32,41 +35,93 @@ class RemoteScreen(QObject):
 
     SERVER_PORT = 19380
 
-    class QSslServer(QTcpServer):
+    class TCPSocketWorker(QObject):
 
-        sslErrors = pyqtSignal([])
-        peerVerifyError = pyqtSignal(QSslError)
-        newEncryptedConnection = pyqtSignal()
-        preSharedKeyAuthenticationRequired = pyqtSignal('QSslPreSharedKeyAuthenticator*')
+        lineRead = pyqtSignal(object)
 
         def __init__(self, parent):
             super().__init__(parent)
-            self.m_sslConfiguration = QSslConfiguration.defaultConfiguration()
+            self.connection = None
+            self.data = bytes()
 
-        def setSslConfiguration(self, sslConfiguration):
-            self.m_sslConfiguration = sslConfiguration
+        @pyqtSlot()
+        def closeConnection(self):
+            try:
+                if self.connection is not None:
+                    self.connection.close()
+                    self.connection = None
+            except Exception as e:
+                pass
 
-        def sslConfiguration(self):
-            return self.m_sslConfiguration
+        @pyqtSlot(object)
+        def newConnection(self, connection):
+            try:
+                self.closeConnection()
+                self.connection = connection
+            except Exception as e:
+                pass
 
-        def nextPendingConnection(self):
-            return super().nextPendingConnection()
+        @pyqtSlot()
+        def readLine(self):
 
-        def incomingConnection(self, socket):
-            pSslSocket = QSslSocket(self)
+            while True:
+                try:
+                    gen = self.connection.readAsync()
+                    for data in gen:
+                        if isinstance(data, int):
+                            if data == 0:
+                                QCoreApplication.processEvents()
+                                if self.connection is None:
+                                    return
+                        elif isinstance(data, bytes):
+                            if len(data) == 0:
+                                self.closeConnection()
+                                return
+                            else:
+                                self.data += data
+                                test = data[-1:]
+                                if data[-1:] == b'\n':
+                                    self.lineRead.emit(self.data)
+                                    self.data = bytes()
+                                    return
+                except Exception as e:
+                    return
 
-            pSslSocket.setSslConfiguration(self.m_sslConfiguration)
+        @pyqtSlot(object)
+        def writeLine(self, data):
+            try:
+                self.connection.write(data)
+            except Exception as e:
+                pass
 
-            if pSslSocket.setSocketDescriptor(socket):
-                pSslSocket.peerVerifyError.connect(self.peerVerifyError)
-                pSslSocket.sslErrors.connect(self.sslErrors)
-                pSslSocket.encrypted.connect(self.newEncryptedConnection)
-                pSslSocket.preSharedKeyAuthenticationRequired.connect(self.preSharedKeyAuthenticationRequired)
 
-                self.addPendingConnection(pSslSocket);
 
-                pSslSocket.startServerEncryption()
+    class TCPServer(QTcpServer):
 
+        newConnection = pyqtSignal(object)
+
+        def __init__(self, parent):
+            super().__init__(parent)
+
+        def incomingConnection(self, sock):
+            try:
+                sock = socket.fromfd(sock, socket.AF_INET, socket.SOCK_STREAM)
+                connection = TLSConnection(sock)
+
+                settings = QSettings('Secalot', 'Secalot Control Panel')
+                key = settings.value('removeScreenKey', '', str)
+                key = bytearray.fromhex(key)
+
+                verifierDB = VerifierDB()
+                verifierDB.create()
+                entry = VerifierDB.makeVerifier("user", key, 2048)
+                verifierDB[b"user"] = entry
+
+                connection.handshakeServer(verifierDB=verifierDB)
+
+                self.newConnection.emit(connection)
+            except Exception as e:
+                pass
 
     class QRCodeImageProvider(QQuickImageProvider):
 
@@ -110,6 +165,11 @@ class RemoteScreen(QObject):
     sendRemoteScreenCommand = pyqtSignal(bytes)
     getDevicePublicKey = pyqtSignal()
 
+    requestOpen = pyqtSignal(object)
+    requestRead = pyqtSignal()
+    requestWrite = pyqtSignal(object)
+    requestClose = pyqtSignal()
+
     def __init__(self, engine, deviceCommunicator):
 
         super().__init__()
@@ -117,15 +177,13 @@ class RemoteScreen(QObject):
         self.qrCodeImageProvider = self.QRCodeImageProvider()
 
         self.guid = None
-        self.pskKey = None
+        self.srpKey = None
         self.qrCodeImageProvider.qrCodeImageData = None
 
         self.server = None
 
         self.zeroConf = None
         self.zeroConfInfo = None
-
-        self.connection = None
 
         engine.addImageProvider("qrCode", self.qrCodeImageProvider)
 
@@ -137,6 +195,19 @@ class RemoteScreen(QObject):
         self.sendRemoteScreenCommand.connect(deviceCommunicator.sendRemoteScreenCommand)
 
         self.getDevicePublicKey.connect(self.deviceCommunicator.getSslPublicKey)
+
+        self.tcpSocketWorkerThread = QThread(self)
+        self.tcpSocketWorker = self.TCPSocketWorker(None)
+        self.tcpSocketWorker.moveToThread(self.tcpSocketWorkerThread)
+        self.tcpSocketWorkerThread.start()
+
+        self.requestClose.connect(self.tcpSocketWorker.closeConnection)
+        self.requestOpen.connect(self.tcpSocketWorker.newConnection)
+        self.requestWrite.connect(self.tcpSocketWorker.writeLine)
+        self.requestRead.connect(self.tcpSocketWorker.readLine)
+
+        self.tcpSocketWorker.lineRead.connect(self.dataReceived)
+
 
     @pyqtSlot()
     def isMobilePhoneBinded(self):
@@ -177,7 +248,7 @@ class RemoteScreen(QObject):
             self.clearMobilePhoneBindingState()
 
             self.guid = str(uuid.uuid4())
-            self.pskKey = os.urandom(32).hex()
+            self.srpKey = os.urandom(32).hex()
 
             self.deviceCommunicator.getSslPublicKeyReady.connect(self.startMobilePhoneBinding2nd)
 
@@ -194,7 +265,7 @@ class RemoteScreen(QObject):
 
             self.deviceCommunicator.getSslPublicKeyReady.disconnect(self.startMobilePhoneBinding2nd)
 
-            jsonString = json.dumps({"guid": self.guid, "pskKey": self.pskKey, "publicKey": publicKey})
+            jsonString = json.dumps({"guid": self.guid, "srpKey": self.srpKey, "publicKey": publicKey})
 
             image = qrcode.make(jsonString)
             output = BytesIO()
@@ -209,14 +280,14 @@ class RemoteScreen(QObject):
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
 
 
-
     def clearMobilePhoneBindingState(self):
         try:
             self.guid = None
-            self.pskKey = None
+            self.srpKey = None
             self.qrCodeImageProvider.qrCodeImageData = None
         except Exception as e:
             pass
+
 
     @pyqtSlot()
     def finishMobilePhoneBinding(self):
@@ -225,7 +296,7 @@ class RemoteScreen(QObject):
             settings = QSettings('Secalot', 'Secalot Control Panel')
 
             settings.setValue('removeScreenUID', self.guid)
-            settings.setValue('removeScreenKey', self.pskKey)
+            settings.setValue('removeScreenKey', self.srpKey)
             settings.setValue('mobilePhoneBinded', True)
 
             self.finishMobilePhoneBindingReady.emit()
@@ -280,17 +351,9 @@ class RemoteScreen(QObject):
     def startServer(self):
 
         try:
+            self.server = self.TCPServer(self)
 
-            self.server = self.QSslServer(self)
-
-            config = self.server.sslConfiguration()
-            config.setPreSharedKeyIdentityHint("RemoteScreen".encode('utf-8'))
-            cipher = QSslCipher("PSK-AES256-CBC-SHA")
-            config.setCiphers([cipher])
-            self.server.setSslConfiguration(config)
-
-            self.server.newEncryptedConnection.connect(self.handleConnection)
-            self.server.preSharedKeyAuthenticationRequired.connect(self.preSharedKeyAuthenticationRequired)
+            self.server.newConnection.connect(self.newConnection)
 
             if not self.server.listen(QHostAddress(QHostAddress.Any), self.SERVER_PORT):
                 raise RemoteScreenException("Can not start RemoteScreen server")
@@ -307,10 +370,7 @@ class RemoteScreen(QObject):
     def stopServer(self):
 
         try:
-
-            if self.connection != None:
-                self.connection.disconnectFromHost()
-                self.connection = None
+            self.requestClose.emit()
 
             if self.server != None:
                 self.server.close()
@@ -322,41 +382,24 @@ class RemoteScreen(QObject):
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
 
 
-    @pyqtSlot()
-    def handleConnection(self):
+    @pyqtSlot(object)
+    def newConnection(self, connection):
         try:
-            if self.connection != None:
-                self.connection.disconnectFromHost()
-                self.connection.readyRead.disconnect(self.dataReceived)
-                self.connection = None
-
-            self.connection = self.server.nextPendingConnection()
-
-            self.connection.readyRead.connect(self.dataReceived)
-
+            self.requestOpen.emit(connection)
+            self.requestRead.emit()
         except Exception as e:
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
 
-
-    @pyqtSlot('QSslPreSharedKeyAuthenticator*')
-    def preSharedKeyAuthenticationRequired(self, authenticator):
+    @pyqtSlot(object)
+    def dataReceived(self, command):
         try:
-            settings = QSettings('Secalot', 'Secalot Control Panel')
-            key = settings.value('removeScreenKey', '', str)
-            key = bytearray.fromhex(key)
-            authenticator.setPreSharedKey(key)
-
+            self.processCommand(command)
+        except RemoteScreenException as e:
+            self.errorOccured.emit(e.reason)
         except Exception as e:
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
-
-    @pyqtSlot()
-    def dataReceived(self):
-        try:
-            while self.connection.canReadLine() == True:
-                command = (bytes)(self.connection.readLine())
-                self.processCommand(command)
-        except Exception as e:
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+        finally:
+            self.requestRead.emit()
 
     def processCommand(self, command):
 
@@ -366,7 +409,7 @@ class RemoteScreen(QObject):
             response = {"response": "Pong", "arguments": []}
             response = json.dumps(response) + '\n'
             response = response.encode('utf-8')
-            self.connection.write(response)
+            self.requestWrite.emit(response)
         elif command["command"] == "SendAPDU":
             if( len(command["arguments"]) != 1):
                 raise RemoteScreenException("Invalid RemoteScreen command received")
@@ -377,22 +420,26 @@ class RemoteScreen(QObject):
 
     @pyqtSlot(str)
     def remoteScreenErrorOccured(self, errorMessage):
-        response = {"response": "Error", "arguments": [errorMessage]}
-        response = json.dumps(response) + '\n'
-        response = response.encode('utf-8')
-        self.connection.write(response)
-
+        try:
+            response = {"response": "Error", "arguments": [errorMessage]}
+            response = json.dumps(response) + '\n'
+            response = response.encode('utf-8')
+            self.requestWrite.emit(response)
+        except Exception as e:
+            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
 
     @pyqtSlot(bytes)
     def remoteScreenCommandSent(self, response):
-        response = {"response": "SendAPDU", "arguments": [base64.b64encode(response).decode('utf8')]}
         try:
-            response = json.dumps(response) + '\n'
+            response = {"response": "SendAPDU", "arguments": [base64.b64encode(response).decode('utf8')]}
+            try:
+                response = json.dumps(response) + '\n'
+            except Exception as e:
+                pass
+            response = response.encode('utf-8')
+            self.requestWrite.emit(response)
         except Exception as e:
-            pass
-        response = response.encode('utf-8')
-        self.connection.write(response)
-
+            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
 
 
 

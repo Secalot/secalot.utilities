@@ -7,7 +7,12 @@ setup(
     install_requires=[
         'PyQt5>=5.8',
         'pyscard',
-        'mnemonic'
+        'mnemonic',
+        'qrcode',
+        'zeroconf',
+        'sip',
+        'pillow',
+        'tlslite-ng'
     ],
     python_requires='>=3.5',
     url='https://github.com/Secalot/secalot.utilities/tree/master/secalotControlPanel',

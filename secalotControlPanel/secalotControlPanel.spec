@@ -46,9 +46,6 @@ a.binaries += [ ('Qt5QuickParticles.dll', os.path.join(qtBinPath, 'Qt5QuickParti
 a.binaries += [ ('Qt5QuickTemplates2.dll', os.path.join(qtBinPath, 'Qt5QuickTemplates2.dll'), 'BINARY' ) ]
 a.binaries += [ ('Qt5QuickTest.dll', os.path.join(qtBinPath, 'Qt5QuickTest.dll'), 'BINARY' ) ]
 a.binaries += [ ('Qt5QuickWidgets.dll', os.path.join(qtBinPath, 'Qt5QuickWidgets.dll'), 'BINARY' ) ]
-
-a.binaries += [ ('ssleay32.dll', os.path.join(qtBinPath, 'ssleay32.dll'), 'BINARY' ) ]
-a.binaries += [ ('libeay32.dll', os.path.join(qtBinPath, 'libeay32.dll'), 'BINARY' ) ]
              
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
