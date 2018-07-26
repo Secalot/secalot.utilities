@@ -38,7 +38,6 @@ AppInfo = namedtuple('AppInfo', 'version walletInitialized pinVerified')
 
 
 def seed(seedText):
-
     mnemonic = EnglishMnemonic('english')
 
     if seedText.startswith('0X') or seedText.startswith('0x'):
@@ -63,14 +62,13 @@ def seed(seedText):
 
 
 def pin(string):
-
     if len(string) < 4 or len(string) > 32:
         raise argparse.ArgumentTypeError('Pin length should be between 4 and 32 bytes')
 
     return string.encode('utf-8')
 
-def derivationPath(string):
 
+def derivationPath(string):
     if not string.startswith('m/'):
         raise argparse.ArgumentTypeError('Invalid derivation path')
 
@@ -108,7 +106,8 @@ def parse_arguments():
 
     parserInitWallet = subparsers.add_parser('initWallet', help='Initialise the wallet')
     parserInitWallet._optionals.title = 'Options'
-    parserInitWallet.add_argument('--seed', required=True, type=seed, help=('Bip32 seed. As a hex number or as a Bip39 mnemonic.'))
+    parserInitWallet.add_argument('--seed', required=True, type=seed,
+                                  help=('Bip32 seed. As a hex number or as a Bip39 mnemonic.'))
     parserInitWallet.add_argument('--pin', required=True, type=pin, help=('New PIN-code.'))
 
     parserVerifyPin = subparsers.add_parser('verifyPin', help='Verify PIN-code')
@@ -119,7 +118,8 @@ def parse_arguments():
 
     parserGetPublicKey = subparsers.add_parser('getPublicKey', help='Get a public key')
     parserGetPublicKey._optionals.title = 'Options'
-    parserGetPublicKey.add_argument('--derivationPath', required=True, type=derivationPath, help=('Bip32 derivation path'))
+    parserGetPublicKey.add_argument('--derivationPath', required=True, type=derivationPath,
+                                    help=('Bip32 derivation path'))
 
     args = parser.parse_args()
     return args
@@ -139,6 +139,7 @@ def findConnectedDevice():
 
     return connection
 
+
 def selectApp(connection):
     response, sw1, sw2 = connection.transmit(
         [0x00, 0xA4, 0x04, 0x00, 0x09, 0x45, 0x54, 0x48, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
@@ -147,7 +148,6 @@ def selectApp(connection):
 
 
 def getInfo(connection):
-
     selectApp(connection)
 
     response, sw1, sw2 = connection.transmit([0x80, 0xC4, 0x00, 0x00])
@@ -158,15 +158,15 @@ def getInfo(connection):
         raise InvalidCardResponseError()
 
     appInfo = AppInfo(
-        version = format(response[0], 'x') + '.' + format(response[1], 'x'),
-        walletInitialized = (response[2] & 0x01 == 0x01),
-        pinVerified = (response[2] & 0x02 == 0x02)
+        version=format(response[0], 'x') + '.' + format(response[1], 'x'),
+        walletInitialized=(response[2] & 0x01 == 0x01),
+        pinVerified=(response[2] & 0x02 == 0x02)
     )
 
     return appInfo
 
-def getRandom(connection, length):
 
+def getRandom(connection, length):
     selectApp(connection)
 
     response, sw1, sw2 = connection.transmit([0x80, 0xC0, 0x00, 0x00, length])
@@ -178,8 +178,8 @@ def getRandom(connection, length):
 
     return response
 
-def initWallet(connection, seed, pin):
 
+def initWallet(connection, seed, pin):
     selectApp(connection)
 
     data = bytearray()
@@ -196,8 +196,8 @@ def initWallet(connection, seed, pin):
         else:
             raise InvalidCardResponseError()
 
-def wipeoutWallet(connection):
 
+def wipeoutWallet(connection):
     selectApp(connection)
 
     response, sw1, sw2 = connection.transmit([0x80, 0xF0, 0x00, 0x00])
@@ -209,7 +209,6 @@ def wipeoutWallet(connection):
 
 
 def verifyPin(connection, pin):
-
     selectApp(connection)
 
     response, sw1, sw2 = connection.transmit([0x80, 0x22, 0x00, 0x00] + [len(pin)] + list(pin))
@@ -225,10 +224,10 @@ def verifyPin(connection, pin):
         elif sw1 == 0x69 and sw2 == 0x83:
             raise WalletError("PIN_BLOCKED", 'PIN-code blocked')
         else:
-             raise InvalidCardResponseError()
+            raise InvalidCardResponseError()
+
 
 def getPinTriesLeft(connection):
-
     selectApp(connection)
 
     response, sw1, sw2 = connection.transmit([0x80, 0x22, 0x80, 0x00])
@@ -240,8 +239,8 @@ def getPinTriesLeft(connection):
 
     return (sw2 - 0xC0)
 
-def getPublicKey(connection, derivationPath):
 
+def getPublicKey(connection, derivationPath):
     selectApp(connection)
 
     indexArray = bytearray()
@@ -249,7 +248,8 @@ def getPublicKey(connection, derivationPath):
     for index in derivationPath:
         indexArray += index.to_bytes(4, 'big')
 
-    response, sw1, sw2 = connection.transmit([0x80, 0x40, 0x00, 0x00] + [len(indexArray)+1] + [len(derivationPath)] + list(indexArray))
+    response, sw1, sw2 = connection.transmit(
+        [0x80, 0x40, 0x00, 0x00] + [len(indexArray) + 1] + [len(derivationPath)] + list(indexArray))
 
     if sw1 != 0x90 or sw2 != 00:
         if sw1 == 0x6d and sw2 == 0x00:
@@ -257,15 +257,16 @@ def getPublicKey(connection, derivationPath):
         elif sw1 == 0x69 and sw2 == 0x82:
             raise WalletError("PIN_NOT_VERIFIED", 'PIN-code not verified.')
         else:
-             raise InvalidCardResponseError()
+            raise InvalidCardResponseError()
 
-    if len(response) != (65+32):
+    if len(response) != (65 + 32):
         raise InvalidCardResponseError()
 
     publicKey = bytes(response[:65])
     chainCode = bytes(response[65:])
 
     return publicKey, chainCode
+
 
 def main():
     arguments = parse_arguments()
@@ -304,6 +305,7 @@ def main():
         print('Error: invalid response received from the device.')
     except WalletError as e:
         print('Error: ' + e.message)
+
 
 if __name__ == "__main__":
     main()

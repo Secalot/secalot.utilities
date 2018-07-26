@@ -19,6 +19,7 @@ class NoReaderFoundError(Exception):
 class InvalidCardResponseError(Exception):
     pass
 
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description='SSL control.')
     parser._optionals.title = 'Options'
@@ -46,6 +47,7 @@ def findConnectedDevice():
 
     return connection
 
+
 def selectApp(connection):
     response, sw1, sw2 = connection.transmit(
         [0x00, 0xA4, 0x04, 0x00, 0x09, 0x53, 0x53, 0x4C, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
@@ -54,7 +56,6 @@ def selectApp(connection):
 
 
 def getPublicKeyFingerprint(connection):
-
     selectApp(connection)
 
     response, sw1, sw2 = connection.transmit([0x80, 0x10, 0x00, 0x00])
@@ -70,8 +71,8 @@ def getPublicKeyFingerprint(connection):
 
     return hash[:16]
 
-def getPublicKey(connection):
 
+def getPublicKey(connection):
     selectApp(connection)
 
     response, sw1, sw2 = connection.transmit([0x80, 0x10, 0x00, 0x00])
@@ -100,6 +101,7 @@ def main():
         print('Error: please connect a device.')
     except InvalidCardResponseError:
         print('Error: invalid response received from the device.')
+
 
 if __name__ == "__main__":
     main()

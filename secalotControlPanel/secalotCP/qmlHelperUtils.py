@@ -7,6 +7,7 @@
 
 from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QSettings
 
+
 class QmlHelperUtilsException(Exception):
     def __init__(self, reason):
         super().__init__()

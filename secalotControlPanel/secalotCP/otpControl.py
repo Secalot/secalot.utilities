@@ -49,16 +49,19 @@ def number_of_digits(string):
         raise argparse.ArgumentTypeError('The value should be between 6 and 8')
     return integer
 
+
 def key_format(string):
     if string != 'hex' and string != 'base32':
         raise argparse.ArgumentTypeError('Please specify hex or base32')
     return string
+
 
 def key_length(string):
     integer = int(string)
     if integer < 10 or integer > 32:
         raise argparse.ArgumentTypeError('The value should be between 10 and 32')
     return integer
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='OTP control.')
@@ -147,14 +150,13 @@ def setKeyAndType(connection, key, type):
 
 
 def generateKey(format, length):
-
     key = os.urandom(length)
 
     if format == 'base32':
         key = base64.b32encode(key)
         key = key.decode("utf-8")
         key = key.lower()
-        key = ' '.join(key[i:i+4] for i in range(0,len(key),4))
+        key = ' '.join(key[i:i + 4] for i in range(0, len(key), 4))
     else:
         key = '0x' + key.hex()
 

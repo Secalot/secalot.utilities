@@ -21,6 +21,7 @@ from secalotCP.deviceCommunicator import DeviceCommunicator
 from secalotCP.qmlHelperUtils import QmlHelperUtils
 from secalotCP.remoteScreen import RemoteScreen
 
+
 class SystemTray(QObject):
     openAppMenuItemClicked = pyqtSignal()
     exitMenuItemClicked = pyqtSignal()
@@ -63,7 +64,7 @@ def main():
 
     systemTray = SystemTray()
 
-    #os.putenv("QML_DISABLE_DISK_CACHE", "true");
+    # os.putenv("QML_DISABLE_DISK_CACHE", "true");
 
     engine = QQmlApplicationEngine()
 

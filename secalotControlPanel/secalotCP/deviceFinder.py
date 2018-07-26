@@ -58,7 +58,7 @@ class DeviceFinder(QThread):
                         self.noDevicesConnected.emit()
                         self.firstRun = False
                     elif (len(connectedReaders) == 1) and (
-                        (len(self.knownReaders) != 1) or (connectedReaders[0] != self.knownReaders[0])):
+                                (len(self.knownReaders) != 1) or (connectedReaders[0] != self.knownReaders[0])):
                         self.oneDeviceConnected.emit(str(connectedReaders[0]), connectedReaders[0].type)
 
                     self.knownReaders = connectedReaders

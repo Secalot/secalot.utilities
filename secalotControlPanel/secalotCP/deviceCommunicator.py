@@ -17,10 +17,12 @@ import secalotCP.sslControl as sslControl
 from secalotCP.deviceFinder import DeviceFinder
 from mnemonic import Mnemonic
 
+
 class DeviceCommunicatorException(Exception):
     def __init__(self, reason):
         super().__init__()
         self.reason = reason
+
 
 class EnglishMnemonic(Mnemonic):
     @classmethod
@@ -29,7 +31,6 @@ class EnglishMnemonic(Mnemonic):
 
 
 class DeviceCommunicatorImplementation(QObject):
-
     remoteScreenErrorOccured = pyqtSignal(str, arguments=['errorMessage'])
     remoteScreenCommandSent = pyqtSignal(bytes, arguments=['response'])
 
@@ -51,7 +52,6 @@ class DeviceCommunicatorImplementation(QObject):
     createEthereumWalletReady = pyqtSignal(str, arguments=['seed'])
     getSslPublicKeyFingerprintReady = pyqtSignal(str, arguments=['fingerprint'])
     getSslPublicKeyReady = pyqtSignal(str, arguments=['publicKey'])
-
 
     selectedReader = None
     selectedReaderType = None
@@ -84,7 +84,6 @@ class DeviceCommunicatorImplementation(QObject):
             self.remoteScreenErrorOccured.emit(self.tr("Failed to communicate with the device"))
         finally:
             self.disconnectFromDevice(connection)
-
 
     @pyqtSlot()
     def getOTPSettings(self):
@@ -190,7 +189,7 @@ class DeviceCommunicatorImplementation(QObject):
                     deviceType, connection = updateFirmware.findConnectedDevice()
             else:
                 if (
-                    deviceInfo.bootloaderVersion != imageInfo.bootloaderVersion) or deviceInfo.bootloaderIsBootable == False:
+                            deviceInfo.bootloaderVersion != imageInfo.bootloaderVersion) or deviceInfo.bootloaderIsBootable == False:
                     self.firmwareUpdateInfo.emit(self.tr('Loading firmware...'))
                     updateFirmware.loadTheImage(connection, blApduList)
                 self.firmwareUpdateInfo.emit(self.tr('Please replug your device.'))
@@ -355,7 +354,6 @@ class DeviceCommunicatorImplementation(QObject):
             self.errorOccured.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
-
 
     @pyqtSlot()
     def getSslPublicKeyFingerprint(self):
@@ -522,7 +520,6 @@ class DeviceCommunicator(QObject):
         self.implementation.getSslPublicKeyFingerprintReady.connect(self.getSslPublicKeyFingerprintReady)
         self.implementation.getSslPublicKeyReady.connect(self.getSslPublicKeyReady)
 
-
     def cleanup(self):
         self.implementationThread.quit()
         if self.implementationThread.wait(2000) == False:
@@ -540,7 +537,8 @@ class DeviceCommunicator(QObject):
 
     @pyqtSlot(bytes)
     def sendRemoteScreenCommand(self, command):
-        QMetaObject.invokeMethod(self.implementation, "sendRemoteScreenCommand", Qt.QueuedConnection, Q_ARG(bytes, command))
+        QMetaObject.invokeMethod(self.implementation, "sendRemoteScreenCommand", Qt.QueuedConnection,
+                                 Q_ARG(bytes, command))
 
     @pyqtSlot()
     def getOTPSettings(self):
@@ -579,11 +577,13 @@ class DeviceCommunicator(QObject):
 
     @pyqtSlot(str, str, str)
     def restoreEthereumWallet(self, seed, newPin, repeatPin):
-        QMetaObject.invokeMethod(self.implementation, "restoreEthereumWallet", Qt.QueuedConnection, Q_ARG(str, seed), Q_ARG(str, newPin), Q_ARG(str, repeatPin))
+        QMetaObject.invokeMethod(self.implementation, "restoreEthereumWallet", Qt.QueuedConnection, Q_ARG(str, seed),
+                                 Q_ARG(str, newPin), Q_ARG(str, repeatPin))
 
     @pyqtSlot(str, str)
     def createEthereumWallet(self, newPin, repeatPin):
-        QMetaObject.invokeMethod(self.implementation, "createEthereumWallet", Qt.QueuedConnection, Q_ARG(str, newPin), Q_ARG(str, repeatPin))
+        QMetaObject.invokeMethod(self.implementation, "createEthereumWallet", Qt.QueuedConnection, Q_ARG(str, newPin),
+                                 Q_ARG(str, repeatPin))
 
     @pyqtSlot()
     def getSslPublicKeyFingerprint(self):

@@ -5,24 +5,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QSettings, QSize, QThread, QCoreApplication, QMetaObject, Q_ARG
-from PyQt5.QtQuick import QQuickImageProvider
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtNetwork import QTcpServer, QTcpSocket, QHostAddress
-
-import uuid
-import os
-
-import qrcode
-from io import BytesIO
-
-import json
 import base64
-
+import json
+import os
+import qrcode
+import uuid
+from io import BytesIO
+from tlslite import *
 from zeroconf import ServiceInfo, Zeroconf, DNSQuestion, _TYPE_PTR, _TYPE_ANY
 
-import socket
-from tlslite import *
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QSettings, QSize, QThread, QCoreApplication
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtNetwork import QTcpServer, QHostAddress
+from PyQt5.QtQuick import QQuickImageProvider
 
 
 class RemoteScreenException(Exception):
@@ -32,7 +27,6 @@ class RemoteScreenException(Exception):
 
 
 class RemoteScreen(QObject):
-
     SERVER_PORT = 19380
 
     class TCPSocketWorker(QObject):
@@ -63,7 +57,6 @@ class RemoteScreen(QObject):
 
         @pyqtSlot()
         def readLine(self):
-
             while True:
                 try:
                     gen = self.connection.readAsync()
@@ -93,8 +86,6 @@ class RemoteScreen(QObject):
                 self.connection.write(data)
             except Exception as e:
                 pass
-
-
 
     class TCPServer(QTcpServer):
 
@@ -132,7 +123,6 @@ class RemoteScreen(QObject):
             super().__init__(QQuickImageProvider.Pixmap)
 
         def requestPixmap(self, id, size):
-
             pixmap = QPixmap(0, 0)
 
             if id == "qrCode.png" and self.qrCodeImageData != None:
@@ -172,7 +162,6 @@ class RemoteScreen(QObject):
     requestClose = pyqtSignal()
 
     def __init__(self, engine, deviceCommunicator):
-
         super().__init__()
 
         self.qrCodeImageProvider = self.QRCodeImageProvider()
@@ -215,9 +204,7 @@ class RemoteScreen(QObject):
 
     @pyqtSlot()
     def isMobilePhoneBinded(self):
-
         try:
-
             settings = QSettings('Secalot', 'Secalot Control Panel')
             mobilePhoneBinded = settings.value('mobilePhoneBinded', False, bool)
 
@@ -229,7 +216,6 @@ class RemoteScreen(QObject):
             self.isMobilePhoneBindedReady.emit(mobilePhoneBindedString)
         except Exception as e:
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
-
 
     @pyqtSlot()
     def unbindMobilePhone(self):
@@ -244,10 +230,8 @@ class RemoteScreen(QObject):
         except Exception as e:
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
 
-
     @pyqtSlot()
     def startMobilePhoneBinding(self):
-
         try:
             self.clearMobilePhoneBindingState()
 
@@ -264,9 +248,7 @@ class RemoteScreen(QObject):
 
     @pyqtSlot(str)
     def startMobilePhoneBinding2nd(self, publicKey):
-
         try:
-
             self.deviceCommunicator.getSslPublicKeyReady.disconnect(self.startMobilePhoneBinding2nd)
 
             jsonString = json.dumps({"guid": self.guid, "srpKey": self.srpKey, "publicKey": publicKey})
@@ -283,7 +265,6 @@ class RemoteScreen(QObject):
             self.clearMobilePhoneBindingState()
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
 
-
     def clearMobilePhoneBindingState(self):
         try:
             self.guid = None
@@ -292,10 +273,8 @@ class RemoteScreen(QObject):
         except Exception as e:
             pass
 
-
     @pyqtSlot()
     def finishMobilePhoneBinding(self):
-
         try:
             settings = QSettings('Secalot', 'Secalot Control Panel')
 
@@ -311,19 +290,16 @@ class RemoteScreen(QObject):
         finally:
             self.clearMobilePhoneBindingState()
 
-
     @pyqtSlot()
     def startZeroConf(self):
-
         try:
-
             settings = QSettings('Secalot', 'Secalot Control Panel')
             guid = settings.value('removeScreenUID', '', str)
 
             self.zeroConfInfo = ServiceInfo('_secalot._tcp.local.',
-                               guid + '._secalot._tcp.local.',
-                               None, self.SERVER_PORT, 0, 0,
-                               {'version': '1'}, "secalot")
+                                            guid + '._secalot._tcp.local.',
+                                            None, self.SERVER_PORT, 0, 0,
+                                            {'version': '1'}, "secalot")
 
             self.zeroConf = self.ZeroConfServer()
 
@@ -334,12 +310,9 @@ class RemoteScreen(QObject):
         except Exception as e:
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
 
-
     @pyqtSlot()
     def stopZeroConf(self):
-
         try:
-
             if self.zeroConf != None:
                 self.zeroConf.unregister_service(self.zeroConfInfo)
                 self.zeroConf.close()
@@ -350,10 +323,8 @@ class RemoteScreen(QObject):
         except Exception as e:
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
 
-
     @pyqtSlot()
     def startServer(self):
-
         try:
             self.server = self.TCPServer(self)
 
@@ -369,10 +340,8 @@ class RemoteScreen(QObject):
         except Exception as e:
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
 
-
     @pyqtSlot()
     def stopServer(self):
-
         try:
             self.requestClose.emit()
 
@@ -384,7 +353,6 @@ class RemoteScreen(QObject):
 
         except Exception as e:
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
-
 
     @pyqtSlot(object)
     def newConnection(self, connection):
@@ -406,7 +374,6 @@ class RemoteScreen(QObject):
             self.requestRead.emit()
 
     def processCommand(self, command):
-
         command = json.loads(command)
 
         if command["command"] == "Ping":
@@ -415,7 +382,7 @@ class RemoteScreen(QObject):
             response = response.encode('utf-8')
             self.requestWrite.emit(response)
         elif command["command"] == "SendAPDU":
-            if( len(command["arguments"]) != 1):
+            if (len(command["arguments"]) != 1):
                 raise RemoteScreenException("Invalid RemoteScreen command received")
             apdu = base64.b64decode(command["arguments"][0])
             self.sendRemoteScreenCommand.emit(apdu)
@@ -444,8 +411,3 @@ class RemoteScreen(QObject):
             self.requestWrite.emit(response)
         except Exception as e:
             self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
-
-
-
-
-
