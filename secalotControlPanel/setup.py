@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='secalotControlPanel',
-    version='1.2',
+    version='1.3',
     packages=['secalotCP'],
     install_requires=[
         'PyQt5>=5.8',
@@ -14,7 +14,7 @@ setup(
         'pillow',
         'tlslite-ng'
     ],
-    python_requires='>=3.5',
+    python_requires='>=3.6',
     url='https://github.com/Secalot/secalot.utilities/tree/master/secalotControlPanel',
     license='Mozilla Public License, v. 2.0',
     author='Matvey Mukha',

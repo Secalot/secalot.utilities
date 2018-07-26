@@ -106,6 +106,7 @@ class RemoteScreen(QObject):
         def incomingConnection(self, sock):
             try:
                 sock = socket.fromfd(sock, socket.AF_INET, socket.SOCK_STREAM)
+                sock.setblocking(False)
                 connection = TLSConnection(sock)
 
                 settings = QSettings('Secalot', 'Secalot Control Panel')
@@ -208,6 +209,9 @@ class RemoteScreen(QObject):
 
         self.tcpSocketWorker.lineRead.connect(self.dataReceived)
 
+    def __del__(self):
+        self.tcpSocketWorkerThread.quit()
+        self.tcpSocketWorkerThread.wait(1000)
 
     @pyqtSlot()
     def isMobilePhoneBinded(self):
