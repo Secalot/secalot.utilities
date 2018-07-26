@@ -143,9 +143,9 @@ class RemoteScreen(QObject):
 
             super(RemoteScreen.ZeroConfServer, self).handle_query(msg, addr, port)
 
-    errorOccured = pyqtSignal(str, arguments=['errorMessage'])
-    isMobilePhoneBindedReady = pyqtSignal(str, arguments=['mobilePhoneBinded'])
-    unbindMobilePhonetReady = pyqtSignal()
+    errorOccurred = pyqtSignal(str, arguments=['errorMessage'])
+    isMobilePhoneBoundReady = pyqtSignal(str, arguments=['mobilePhoneBound'])
+    unbindMobilePhoneReady = pyqtSignal()
     startMobilePhoneBindingReady = pyqtSignal()
     finishMobilePhoneBindingReady = pyqtSignal()
     startServerReady = pyqtSignal()
@@ -179,7 +179,7 @@ class RemoteScreen(QObject):
 
         self.deviceCommunicator = deviceCommunicator
 
-        self.deviceCommunicator.remoteScreenErrorOccured.connect(self.remoteScreenErrorOccured)
+        self.deviceCommunicator.remoteScreenErrorOccurred.connect(self.remoteScreenErrorOccurred)
         self.deviceCommunicator.remoteScreenCommandSent.connect(self.remoteScreenCommandSent)
 
         self.sendRemoteScreenCommand.connect(deviceCommunicator.sendRemoteScreenCommand)
@@ -203,32 +203,32 @@ class RemoteScreen(QObject):
         self.tcpSocketWorkerThread.wait(1000)
 
     @pyqtSlot()
-    def isMobilePhoneBinded(self):
+    def isMobilePhoneBound(self):
         try:
             settings = QSettings('Secalot', 'Secalot Control Panel')
-            mobilePhoneBinded = settings.value('mobilePhoneBinded', False, bool)
+            mobilePhoneBound = settings.value('mobilePhoneBound', False, bool)
 
-            if mobilePhoneBinded == True:
-                mobilePhoneBindedString = 'Yes'
+            if mobilePhoneBound == True:
+                mobilePhoneBoundString = 'Yes'
             else:
-                mobilePhoneBindedString = 'No'
+                mobilePhoneBoundString = 'No'
 
-            self.isMobilePhoneBindedReady.emit(mobilePhoneBindedString)
+            self.isMobilePhoneBoundReady.emit(mobilePhoneBoundString)
         except Exception as e:
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
 
     @pyqtSlot()
     def unbindMobilePhone(self):
         try:
             settings = QSettings('Secalot', 'Secalot Control Panel')
-            settings.remove('mobilePhoneBinded')
+            settings.remove('mobilePhoneBound')
             settings.remove('removeScreenUID')
             settings.remove('removeScreenKey')
 
-            self.unbindMobilePhonetReady.emit()
+            self.unbindMobilePhoneReady.emit()
 
         except Exception as e:
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
 
     @pyqtSlot()
     def startMobilePhoneBinding(self):
@@ -244,7 +244,7 @@ class RemoteScreen(QObject):
 
         except Exception as e:
             self.clearMobilePhoneBindingState()
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
 
     @pyqtSlot(str)
     def startMobilePhoneBinding2nd(self, publicKey):
@@ -263,7 +263,7 @@ class RemoteScreen(QObject):
 
         except Exception as e:
             self.clearMobilePhoneBindingState()
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
 
     def clearMobilePhoneBindingState(self):
         try:
@@ -280,13 +280,13 @@ class RemoteScreen(QObject):
 
             settings.setValue('removeScreenUID', self.guid)
             settings.setValue('removeScreenKey', self.srpKey)
-            settings.setValue('mobilePhoneBinded', True)
+            settings.setValue('mobilePhoneBound', True)
 
             self.finishMobilePhoneBindingReady.emit()
 
         except Exception as e:
             self.cancelMobilePhoneBinding()
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
         finally:
             self.clearMobilePhoneBindingState()
 
@@ -308,7 +308,7 @@ class RemoteScreen(QObject):
             self.startZeroConfReady.emit()
 
         except Exception as e:
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
 
     @pyqtSlot()
     def stopZeroConf(self):
@@ -321,7 +321,7 @@ class RemoteScreen(QObject):
             self.stopZeroConfReady.emit()
 
         except Exception as e:
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
 
     @pyqtSlot()
     def startServer(self):
@@ -336,9 +336,9 @@ class RemoteScreen(QObject):
             self.startServerReady.emit()
 
         except RemoteScreenException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except Exception as e:
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
 
     @pyqtSlot()
     def stopServer(self):
@@ -352,7 +352,7 @@ class RemoteScreen(QObject):
             self.stopServerReady.emit()
 
         except Exception as e:
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
 
     @pyqtSlot(object)
     def newConnection(self, connection):
@@ -360,16 +360,16 @@ class RemoteScreen(QObject):
             self.requestOpen.emit(connection)
             self.requestRead.emit()
         except Exception as e:
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
 
     @pyqtSlot(object)
     def dataReceived(self, command):
         try:
             self.processCommand(command)
         except RemoteScreenException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except Exception as e:
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
         finally:
             self.requestRead.emit()
 
@@ -390,14 +390,14 @@ class RemoteScreen(QObject):
             raise RemoteScreenException("Invalid RemoteScreen command received")
 
     @pyqtSlot(str)
-    def remoteScreenErrorOccured(self, errorMessage):
+    def remoteScreenErrorOccurred(self, errorMessage):
         try:
             response = {"response": "Error", "arguments": [errorMessage]}
             response = json.dumps(response) + '\n'
             response = response.encode('utf-8')
             self.requestWrite.emit(response)
         except Exception as e:
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))
 
     @pyqtSlot(bytes)
     def remoteScreenCommandSent(self, response):
@@ -410,4 +410,4 @@ class RemoteScreen(QObject):
             response = response.encode('utf-8')
             self.requestWrite.emit(response)
         except Exception as e:
-            self.errorOccured.emit(self.tr("A RemoteScreen error occurred."))
+            self.errorOccurred.emit(self.tr("A RemoteScreen error occurred."))

@@ -31,7 +31,7 @@ class EnglishMnemonic(Mnemonic):
 
 
 class DeviceCommunicatorImplementation(QObject):
-    remoteScreenErrorOccured = pyqtSignal(str, arguments=['errorMessage'])
+    remoteScreenErrorOccurred = pyqtSignal(str, arguments=['errorMessage'])
     remoteScreenCommandSent = pyqtSignal(bytes, arguments=['response'])
 
     getOTPSettingsReady = pyqtSignal(str, str, arguments=['numberOfDigits', 'otpType'])
@@ -40,7 +40,7 @@ class DeviceCommunicatorImplementation(QObject):
     getDeviceInfoReady = pyqtSignal(str, str, str, str, str,
                                     arguments=['deviceID', 'serialNumber', 'fwVersion', 'fsVersion',
                                                'bootloaderVersion'])
-    errorOccured = pyqtSignal(str, arguments=['errorMessage'])
+    errorOccurred = pyqtSignal(str, arguments=['errorMessage'])
     firmwareUpdateInfo = pyqtSignal(str, arguments=['message'])
     firmwareUpdateReady = pyqtSignal()
     firmwareUpdateFailed = pyqtSignal(str, arguments=['errorMessage'])
@@ -79,9 +79,9 @@ class DeviceCommunicatorImplementation(QObject):
             response = response + [sw1] + [sw2]
             self.remoteScreenCommandSent.emit(bytes(response))
         except DeviceCommunicatorException as e:
-            self.remoteScreenErrorOccured.emit("Device not connected")
+            self.remoteScreenErrorOccurred.emit("Device not connected")
         except Exception as e:
-            self.remoteScreenErrorOccured.emit(self.tr("Failed to communicate with the device"))
+            self.remoteScreenErrorOccurred.emit(self.tr("Failed to communicate with the device"))
         finally:
             self.disconnectFromDevice(connection)
 
@@ -93,11 +93,11 @@ class DeviceCommunicatorImplementation(QObject):
             numberOfDigits, type = otpControl.getNumberOfDigitsAndType(connection)
             self.getOTPSettingsReady.emit(str(numberOfDigits), type)
         except DeviceCommunicatorException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except otpControl.InvalidCardResponseError:
-            self.errorOccured.emit(self.tr("Communication failed."))
+            self.errorOccurred.emit(self.tr("Communication failed."))
         except Exception as e:
-            self.errorOccured.emit(self.tr("An error occurred."))
+            self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
 
@@ -121,11 +121,11 @@ class DeviceCommunicatorImplementation(QObject):
 
             self.setOTPSettingsReady.emit()
         except DeviceCommunicatorException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except otpControl.InvalidCardResponseError:
-            self.errorOccured.emit(self.tr("Communication failed."))
+            self.errorOccurred.emit(self.tr("Communication failed."))
         except Exception as e:
-            self.errorOccured.emit(self.tr("An error occurred."))
+            self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
 
@@ -136,7 +136,7 @@ class DeviceCommunicatorImplementation(QObject):
             key = otpControl.generateKey(keyFormat, keyLength)
             self.generatedOTPKeyReady.emit(key)
         except Exception as e:
-            self.errorOccured.emit(self.tr("Generic error."))
+            self.errorOccurred.emit(self.tr("Generic error."))
 
     @pyqtSlot()
     def getDeviceInfo(self):
@@ -149,11 +149,11 @@ class DeviceCommunicatorImplementation(QObject):
                                          hex(deviceInfo.firmwareVersion), hex(deviceInfo.fileSystemVersion),
                                          hex(deviceInfo.bootloaderVersion))
         except DeviceCommunicatorException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except otpControl.InvalidCardResponseError:
-            self.errorOccured.emit(self.tr("Communication failed."))
+            self.errorOccurred.emit(self.tr("Communication failed."))
         except Exception as e:
-            self.errorOccured.emit(self.tr("An error occurred."))
+            self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
 
@@ -227,9 +227,9 @@ class DeviceCommunicatorImplementation(QObject):
             self.getFirmwareImageInfoReady.emit(hex(imageInfo.deviceID), hex(imageInfo.firmwareVersion),
                                                 hex(imageInfo.fileSystemVersion), hex(imageInfo.bootloaderVersion))
         except DeviceCommunicatorException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except Exception as e:
-            self.errorOccured.emit(self.tr("Generic error."))
+            self.errorOccurred.emit(self.tr("Generic error."))
 
     @pyqtSlot()
     def getEthereumWalletInfo(self):
@@ -260,11 +260,11 @@ class DeviceCommunicatorImplementation(QObject):
                 self.getEthereumWalletInfoReady.emit(info.version, initStatus, pinStatus)
 
         except DeviceCommunicatorException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except ethControl.InvalidCardResponseError:
             print(self.tr("Communication failed."))
         except Exception as e:
-            self.errorOccured.emit(self.tr("An error occurred."))
+            self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
 
@@ -279,11 +279,11 @@ class DeviceCommunicatorImplementation(QObject):
             self.wipeoutEthereumWalletReady.emit()
 
         except DeviceCommunicatorException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except ethControl.InvalidCardResponseError:
             print(self.tr("Communication failed."))
         except Exception as e:
-            self.errorOccured.emit(self.tr("An error occurred."))
+            self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
 
@@ -313,11 +313,11 @@ class DeviceCommunicatorImplementation(QObject):
             self.restoreEthereumWalletReady.emit()
 
         except DeviceCommunicatorException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except ethControl.InvalidCardResponseError:
             print(self.tr("Communication failed."))
         except Exception as e:
-            self.errorOccured.emit(self.tr("An error occurred."))
+            self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
 
@@ -347,11 +347,11 @@ class DeviceCommunicatorImplementation(QObject):
             self.createEthereumWalletReady.emit(phrase)
 
         except DeviceCommunicatorException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except ethControl.InvalidCardResponseError:
             print(self.tr("Communication failed."))
         except Exception as e:
-            self.errorOccured.emit(self.tr("An error occurred."))
+            self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
 
@@ -371,9 +371,9 @@ class DeviceCommunicatorImplementation(QObject):
             self.getSslPublicKeyFingerprintReady.emit(fingerprint)
 
         except DeviceCommunicatorException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except Exception as e:
-            self.errorOccured.emit(self.tr("An error occurred."))
+            self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
 
@@ -387,9 +387,9 @@ class DeviceCommunicatorImplementation(QObject):
             self.getSslPublicKeyReady.emit(publicKey)
 
         except DeviceCommunicatorException as e:
-            self.errorOccured.emit(e.reason)
+            self.errorOccurred.emit(e.reason)
         except Exception as e:
-            self.errorOccured.emit(self.tr("An error occurred."))
+            self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
             self.disconnectFromDevice(connection)
 
@@ -428,7 +428,7 @@ class DeviceCommunicatorImplementation(QObject):
                          self.tr(
                              'This update can only be applied together with cleaning a file system.\nPlease tick the "Erase file system" checkbox.'),
                          self.tr(
-                             'An update performed on this device was interrutped while cleaning a file system.\nPlease tick the "Erase file system" checkbox.'),
+                             'An update performed on this device was interrupted while cleaning a file system.\nPlease tick the "Erase file system" checkbox.'),
                          self.tr(
                              'Previous update was interrupted. Please continue with the exact same update image file.')]
 
@@ -474,7 +474,7 @@ class DeviceCommunicatorImplementation(QObject):
 
 
 class DeviceCommunicator(QObject):
-    remoteScreenErrorOccured = pyqtSignal(str, arguments=['errorMessage'])
+    remoteScreenErrorOccurred = pyqtSignal(str, arguments=['errorMessage'])
     remoteScreenCommandSent = pyqtSignal(bytes, arguments=['response'])
     getOTPSettingsReady = pyqtSignal(str, str, arguments=['numberOfDigits', 'otpType'])
     setOTPSettingsReady = pyqtSignal()
@@ -482,7 +482,7 @@ class DeviceCommunicator(QObject):
     getDeviceInfoReady = pyqtSignal(str, str, str, str, str,
                                     arguments=['deviceID', 'serialNumber', 'fwVersion', 'fsVersion',
                                                'bootloaderVersion'])
-    errorOccured = pyqtSignal(str, arguments=['errorMessage'])
+    errorOccurred = pyqtSignal(str, arguments=['errorMessage'])
     firmwareUpdateInfo = pyqtSignal(str, arguments=['message'])
     firmwareUpdateReady = pyqtSignal()
     firmwareUpdateFailed = pyqtSignal(str, arguments=['errorMessage'])
@@ -502,13 +502,13 @@ class DeviceCommunicator(QObject):
         self.implementation.moveToThread(self.implementationThread)
         self.implementationThread.start()
 
-        self.implementation.remoteScreenErrorOccured.connect(self.remoteScreenErrorOccured)
+        self.implementation.remoteScreenErrorOccurred.connect(self.remoteScreenErrorOccurred)
         self.implementation.remoteScreenCommandSent.connect(self.remoteScreenCommandSent)
         self.implementation.getOTPSettingsReady.connect(self.getOTPSettingsReady)
         self.implementation.setOTPSettingsReady.connect(self.setOTPSettingsReady)
         self.implementation.generatedOTPKeyReady.connect(self.generatedOTPKeyReady)
         self.implementation.getDeviceInfoReady.connect(self.getDeviceInfoReady)
-        self.implementation.errorOccured.connect(self.errorOccured)
+        self.implementation.errorOccurred.connect(self.errorOccurred)
         self.implementation.firmwareUpdateInfo.connect(self.firmwareUpdateInfo)
         self.implementation.firmwareUpdateReady.connect(self.firmwareUpdateReady)
         self.implementation.firmwareUpdateFailed.connect(self.firmwareUpdateFailed)

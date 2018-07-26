@@ -18,17 +18,17 @@ RemoteScreenForm {
     signal mobilePhoneBindingFinished()
     signal mobilePhoneUnbind()
 
-    property bool propMobilePhoneBinded: false
+    property bool propMobilePhoneBound: false
     property bool propSupportedDeviceConnected: false
 
-    function setMobilePhoneBindingInfo(mobilePhoneBinded) {
+    function setMobilePhoneBindingInfo(mobilePhoneBound) {
 
-        bindingStatusValueLabel.text = mobilePhoneBinded
+        bindingStatusValueLabel.text = mobilePhoneBound
 
-        if(mobilePhoneBinded === 'Yes') {
+        if(mobilePhoneBound === 'Yes') {
             bindMobilePhoneGroupBox.enabled = false
             unbindMobilePhoneGroupBox.enabled = true
-            propMobilePhoneBinded = true
+            propMobilePhoneBound = true
         }
         else {
             if(propSupportedDeviceConnected == true) {
@@ -36,7 +36,7 @@ RemoteScreenForm {
             }
 
             unbindMobilePhoneGroupBox.enabled = false
-            propMobilePhoneBinded = false
+            propMobilePhoneBound = false
         }
     }
 
@@ -66,7 +66,7 @@ RemoteScreenForm {
     function supportedDeviceConnected() {
         propSupportedDeviceConnected = true
 
-        if(propMobilePhoneBinded == false) {
+        if(propMobilePhoneBound == false) {
             bindMobilePhoneGroupBox.enabled = true
         }
     }

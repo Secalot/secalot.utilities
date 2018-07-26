@@ -8,7 +8,7 @@ Item {
     Component.onCompleted: {
         qmlHelperUtils.getCurrentSettings()
 
-        remoteScreenRoutines.isMobilePhoneBinded()
+        remoteScreenRoutines.isMobilePhoneBound()
     }
 
     Connections {
@@ -157,7 +157,7 @@ Item {
     Connections {
         target: deviceCommunicator
 
-        onErrorOccured: {
+        onErrorOccurred: {
             mainWindow.openSimplePopup(errorMessage)
         }
 
@@ -229,14 +229,14 @@ Item {
     Connections {
         target: remoteScreenRoutines
 
-        onErrorOccured: {
+        onErrorOccurred: {
             mainWindow.openSimplePopup(errorMessage)
         }
 
-        onIsMobilePhoneBindedReady: {
-            remoteScreen.setMobilePhoneBindingInfo(mobilePhoneBinded)
+        onIsMobilePhoneBoundReady: {
+            remoteScreen.setMobilePhoneBindingInfo(mobilePhoneBound)
 
-            if(mobilePhoneBinded === "Yes") {
+            if(mobilePhoneBound === "Yes") {
                 remoteScreenRoutines.startServer()
                 remoteScreenRoutines.startZeroConf()
             }
@@ -251,12 +251,12 @@ Item {
             remoteScreen.displayBindingInfo()
         }
 
-        onUnbindMobilePhonetReady: {
-            remoteScreenRoutines.isMobilePhoneBinded()
+        onUnbindMobilePhoneReady: {
+            remoteScreenRoutines.isMobilePhoneBound()
         }
 
         onFinishMobilePhoneBindingReady: {
-            remoteScreenRoutines.isMobilePhoneBinded()
+            remoteScreenRoutines.isMobilePhoneBound()
         }
 
     }

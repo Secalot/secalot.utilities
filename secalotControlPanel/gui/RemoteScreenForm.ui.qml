@@ -33,7 +33,7 @@ Item {
 
                 Label {
                     id: bindingStatusTextLabel
-                    text: qsTr("Mobile phone binded:")
+                    text: qsTr("Mobile phone bound:")
                 }
 
                 Label {

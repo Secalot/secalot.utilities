@@ -261,7 +261,7 @@ def checkImageInfo(imageInfo, deviceInfo, cleanFileSystemRequested):
         raise NotSuitableImageError(5)
     if cleanFileSystemRequested == False and deviceInfo.fileSystemUpdateInProgress == True:
         print(
-            'An update performed on this device was interrutped while cleaning a file system. Please use a --cleanFileSystem option.')
+            'An update performed on this device was interrupted while cleaning a file system. Please use a --cleanFileSystem option.')
         raise NotSuitableImageError(6)
     if (imageInfo.bootloaderVersion != deviceInfo.bootloaderVersion) and deviceInfo.firmwareIsBootable == False:
         print('Previous update was interrupted. Please continue with the exact same update image file.')

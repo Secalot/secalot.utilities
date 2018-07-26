@@ -27,7 +27,7 @@ Item {
         GroupBox {
             id: currentSettingsGroupBox
             Layout.fillWidth: true
-            title: qsTr("Curent settings")
+            title: qsTr("Current settings")
 
             GridLayout {
                 id: currentSettingsGridLayout
