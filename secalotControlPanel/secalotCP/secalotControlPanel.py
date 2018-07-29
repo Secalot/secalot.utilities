@@ -64,7 +64,7 @@ def main():
 
     systemTray = SystemTray()
 
-    # os.putenv("QML_DISABLE_DISK_CACHE", "true");
+    os.putenv("QML_DISABLE_DISK_CACHE", "true");
 
     engine = QQmlApplicationEngine()
 
