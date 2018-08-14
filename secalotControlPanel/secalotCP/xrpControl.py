@@ -8,7 +8,7 @@
 import argparse
 import smartcard.System
 from collections import namedtuple
-from mnemonic import Mnemonic
+
 
 READER_NAME = 'Secalot Secalot Dongle'
 
@@ -28,37 +28,23 @@ class WalletError(Exception):
         self.message = message
 
 
-class EnglishMnemonic(Mnemonic):
-    @classmethod
-    def list_languages(cls):
-        return ['english']
-
-
 AppInfo = namedtuple('AppInfo', 'version walletInitialized pinVerified')
 
 
-def seed(seedText):
-    mnemonic = EnglishMnemonic('english')
+def privateKey(pkString):
 
-    if seedText.startswith('0X') or seedText.startswith('0x'):
-        seedText = seedText[2:]
+    if pkString.startswith('0x'):
+        pkString = pkString[2:]
 
-    seedIsANumber = True
+    if len(pkString) != 64:
+        raise argparse.ArgumentTypeError('Private key should be 32 bytes long')
 
     try:
-        seed = bytearray.fromhex(seedText)
-    except:
-        seedIsANumber = False
+        pkByteArray = bytearray.fromhex(pkString)
+    except Exception:
+        raise argparse.ArgumentTypeError('Invalid private key hex representation')
 
-    if seedIsANumber == False:
-        if mnemonic.check(seedText) == False:
-            raise argparse.ArgumentTypeError('The seed mnemonic is invalid')
-        seed = mnemonic.to_seed(seedText)
-    else:
-        if len(seed) > 64 or len(seed) < 32:
-            raise argparse.ArgumentTypeError('The value should be 32 to 64 bytes long')
-
-    return seed
+    return pkByteArray
 
 
 def pin(string):
@@ -67,37 +53,32 @@ def pin(string):
 
     return string.encode('utf-8')
 
+def randomLength(length):
 
-def derivationPath(string):
-    if not string.startswith('m/'):
-        raise argparse.ArgumentTypeError('Invalid derivation path')
+    length = int(length)
 
-    string = string[2:]
+    if length > 128 or length < 0:
+        raise argparse.ArgumentTypeError('Length should be between 0 and 128 bytes')
 
-    indexList = string.split('/')
+    return length
 
-    if len(indexList) < 1 or len(indexList) > 10:
-        raise argparse.ArgumentTypeError('Invalid derivation path')
+def dataToSign(dataString):
+    if dataString.startswith('0x'):
+        dataString = dataString[2:]
 
-    intIndexes = []
+    if len(dataString) == 0:
+        raise argparse.ArgumentTypeError('Data length should not be zero')
 
-    for index in indexList:
-        try:
-            if index.endswith('\''):
-                index = index[:-1]
-                index = int(index) | 0x80000000
-            else:
-                index = int(index)
+    try:
+        dataByteArray = bytearray.fromhex(dataString)
+    except Exception:
+        raise argparse.ArgumentTypeError('Invalid data hex representation')
 
-            intIndexes.append(index)
-        except ValueError:
-            raise argparse.ArgumentTypeError('Invalid derivation path')
-
-    return intIndexes
+    return dataByteArray
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Ethereum control.')
+    parser = argparse.ArgumentParser(description='Ripple control.')
     parser._optionals.title = 'Options'
     subparsers = parser.add_subparsers(dest='subcommand')
     subparsers.required = True
@@ -106,8 +87,8 @@ def parse_arguments():
 
     parserInitWallet = subparsers.add_parser('initWallet', help='Initialise the wallet')
     parserInitWallet._optionals.title = 'Options'
-    parserInitWallet.add_argument('--seed', required=True, type=seed,
-                                  help=('Bip32 seed. As a hex number or as a Bip39 mnemonic.'))
+    parserInitWallet.add_argument('--key', required=True, type=privateKey,
+                                  help=('Private key as a hex string'))
     parserInitWallet.add_argument('--pin', required=True, type=pin, help=('New PIN-code.'))
 
     parserVerifyPin = subparsers.add_parser('verifyPin', help='Verify PIN-code')
@@ -118,8 +99,14 @@ def parse_arguments():
 
     parserGetPublicKey = subparsers.add_parser('getPublicKey', help='Get a public key')
     parserGetPublicKey._optionals.title = 'Options'
-    parserGetPublicKey.add_argument('--derivationPath', required=True, type=derivationPath,
-                                    help=('Bip32 derivation path'))
+
+    parserGetRandom = subparsers.add_parser('getRandom', help='Get random numbers')
+    parserGetRandom.add_argument('--length', required=True, type=randomLength, help=('Number of random bytes to get'))
+    parserGetRandom._optionals.title = 'Options'
+
+    parserSign = subparsers.add_parser('sign', help='Sign data')
+    parserSign.add_argument('--data', required=True, type=dataToSign, help=('Data to sign'))
+    parserSign._optionals.title = 'Options'
 
     args = parser.parse_args()
     return args
@@ -142,7 +129,7 @@ def findConnectedDevice():
 
 def selectApp(connection):
     response, sw1, sw2 = connection.transmit(
-        [0x00, 0xA4, 0x04, 0x00, 0x09, 0x45, 0x54, 0x48, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
+        [0x00, 0xA4, 0x04, 0x00, 0x09, 0x58, 0x52, 0x50, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
     if sw1 != 0x90 or sw2 != 00:
         raise InvalidCardResponseError()
 
@@ -179,15 +166,14 @@ def getRandom(connection, length):
     return response
 
 
-def initWallet(connection, seed, pin):
+def initWallet(connection, privateKey, pin):
     selectApp(connection)
 
     data = bytearray()
 
     data.append(len(pin))
     data += pin
-    data.append(len(seed))
-    data += seed
+    data += privateKey
 
     response, sw1, sw2 = connection.transmit([0x80, 0x20, 0x00, 0x00] + [len(data)] + list(data))
     if sw1 != 0x90 or sw2 != 00:
@@ -240,16 +226,10 @@ def getPinTriesLeft(connection):
     return (sw2 - 0xC0)
 
 
-def getPublicKey(connection, derivationPath):
+def getPublicKey(connection):
     selectApp(connection)
 
-    indexArray = bytearray()
-
-    for index in derivationPath:
-        indexArray += index.to_bytes(4, 'big')
-
-    response, sw1, sw2 = connection.transmit(
-        [0x80, 0x40, 0x00, 0x00] + [len(indexArray) + 1] + [len(derivationPath)] + list(indexArray))
+    response, sw1, sw2 = connection.transmit( [0x80, 0x40, 0x00, 0x00] )
 
     if sw1 != 0x90 or sw2 != 00:
         if sw1 == 0x6d and sw2 == 0x00:
@@ -259,13 +239,41 @@ def getPublicKey(connection, derivationPath):
         else:
             raise InvalidCardResponseError()
 
-    if len(response) != (65 + 32):
+    if len(response) != 65:
         raise InvalidCardResponseError()
 
-    publicKey = bytes(response[:65])
-    chainCode = bytes(response[65:])
+    return bytes(response)
 
-    return publicKey, chainCode
+
+def sign(connection, dataToSign):
+    firstChunk = True
+    selectApp(connection)
+
+    chunks = [dataToSign[i:i + 128] for i in range(0, len(dataToSign), 128)]
+
+
+    for chunk in chunks:
+        if firstChunk is True:
+            response, sw1, sw2 = connection.transmit( [0x80, 0xf2, 0x00, 0x00] + [len(chunk)] + list(chunk))
+            firstChunk = False;
+        else:
+            response, sw1, sw2 = connection.transmit([0x80, 0xf2, 0x01, 0x00] + [len(chunk)] + list(chunk))
+
+        if sw1 != 0x90 or sw2 != 00:
+            if sw1 == 0x6d and sw2 == 0x00:
+                raise WalletError("NOT_INIT", 'Wallet not initialized')
+            elif sw1 == 0x69 and sw2 == 0x82:
+                raise WalletError("PIN_NOT_VERIFIED", 'PIN-code not verified.')
+            else:
+                raise InvalidCardResponseError()
+
+    response, sw1, sw2 = connection.transmit([0x80, 0xf2, 0x02, 0x00])
+
+    if sw1 != 0x90 or sw2 != 00:
+        raise InvalidCardResponseError()
+
+
+    return bytes(response)
 
 
 def main():
@@ -274,11 +282,10 @@ def main():
     try:
         connection = findConnectedDevice()
         if arguments.subcommand == 'initWallet':
-            initWallet(connection, arguments.seed, arguments.pin)
+            initWallet(connection, arguments.key, arguments.pin)
         elif arguments.subcommand == 'getPublicKey':
-            publicKey, chainCode = getPublicKey(connection, arguments.derivationPath)
+            publicKey = getPublicKey(connection)
             print('Public key: ' + ''.join(format(x, '02x') for x in publicKey))
-            print('Chaincode: ' + ''.join(format(x, '02x') for x in chainCode))
         elif arguments.subcommand == 'wipeoutWallet':
             wipeoutWallet(connection)
         elif arguments.subcommand == 'verifyPin':
@@ -297,6 +304,13 @@ def main():
                 print('Pin status: verified')
             else:
                 print('Pin status: unverified')
+        elif arguments.subcommand == 'getRandom':
+            rand = getRandom(connection, arguments.length)
+            print('Random string: ' + ''.join(format(x, '02x') for x in rand))
+        elif arguments.subcommand == 'sign':
+            print('Please confirm the action by tapping a touch button')
+            signature = sign(connection, arguments.data)
+            print('Signature: ' + ''.join(format(x, '02x') for x in signature))
 
     except NoReaderFoundError:
         print('Error: please connect a device.')
