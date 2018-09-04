@@ -8,6 +8,19 @@
 import argparse
 import smartcard.System
 from collections import namedtuple
+from u2flib_host import u2f
+from u2flib_host import hid_transport
+from u2flib_host.hid_transport import HIDDevice
+from u2flib_host.utils import websafe_encode, websafe_decode
+import json
+
+
+def hidReadTimeoutOverride(dev, size, timeout=2.0):
+    return hid_transport._original_read_timeout(dev, size, 60.0)
+
+
+hid_transport._original_read_timeout = hid_transport._read_timeout
+hid_transport._read_timeout = hidReadTimeoutOverride
 
 
 READER_NAME = 'Secalot Secalot Dongle'
@@ -108,36 +121,79 @@ def parse_arguments():
     parserSign.add_argument('--data', required=True, type=dataToSign, help=('Data to sign'))
     parserSign._optionals.title = 'Options'
 
+    parser.add_argument("--u2f", help="use U2F as transport", action="store_true")
+
     args = parser.parse_args()
     return args
 
 
-def findConnectedDevice():
-    connectedReaders = smartcard.System.readers()
+def findConnectedDevice(useU2f):
 
-    reader = next((reader for reader in connectedReaders if reader.name.startswith(READER_NAME)), None)
+    if useU2f:
+        allDevices = u2f.list_devices()
 
-    if reader != None:
-        connection = reader.createConnection()
+        device = next((device for device in allDevices if "vid_1209" and "pid_7000" in device.path.decode("utf-8")),
+                      None)
+
+        if device is None:
+            raise NoReaderFoundError
+
+        connection = device
     else:
-        raise NoReaderFoundError
+        connectedReaders = smartcard.System.readers()
 
-    connection.connect()
+        reader = next((reader for reader in connectedReaders if reader.name.startswith(READER_NAME)), None)
+
+        if reader != None:
+            connection = reader.createConnection()
+        else:
+            raise NoReaderFoundError
+
+        connection.connect()
 
     return connection
 
+def sendAPDU(connection, apdu):
+    if isinstance(connection, HIDDevice):
+        signRequest = {}
+
+        keyHandle = bytearray.fromhex('8877665544332211') + bytes(apdu)
+
+        signRequest["version"] = "U2F_V2"
+        signRequest["appId"] = "http://localhost"
+        signRequest["challenge"] = websafe_encode(
+            bytearray.fromhex('0000000000000000000000000000000000000000000000000000000000000000'))
+        signRequest["keyHandle"] = websafe_encode(keyHandle)
+
+        signRequest = json.dumps(signRequest)
+
+        with connection:
+            response = u2f.authenticate(connection, signRequest, "http://localhost")
+            response = list(websafe_decode(response["signatureData"]))
+
+        if len(response) < 2:
+            raise InvalidCardResponseError()
+
+        sw2 = response.pop()
+        sw1 = response.pop()
+
+        return response, sw1, sw2
+    else:
+        return connection.transmit(apdu)
+
 
 def selectApp(connection):
-    response, sw1, sw2 = connection.transmit(
-        [0x00, 0xA4, 0x04, 0x00, 0x09, 0x58, 0x52, 0x50, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
-    if sw1 != 0x90 or sw2 != 00:
-        raise InvalidCardResponseError()
+    if not isinstance(connection, HIDDevice):
+        response, sw1, sw2 = sendAPDU(connection,
+            [0x00, 0xA4, 0x04, 0x00, 0x09, 0x58, 0x52, 0x50, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
+        if sw1 != 0x90 or sw2 != 00:
+            raise InvalidCardResponseError()
 
 
 def getInfo(connection):
     selectApp(connection)
 
-    response, sw1, sw2 = connection.transmit([0x80, 0xC4, 0x00, 0x00])
+    response, sw1, sw2 = sendAPDU(connection, [0x80, 0xC4, 0x00, 0x00])
     if sw1 != 0x90 or sw2 != 00:
         raise InvalidCardResponseError()
 
@@ -156,7 +212,7 @@ def getInfo(connection):
 def getRandom(connection, length):
     selectApp(connection)
 
-    response, sw1, sw2 = connection.transmit([0x80, 0xC0, 0x00, 0x00, length])
+    response, sw1, sw2 = sendAPDU(connection, [0x80, 0xC0, 0x00, 0x00, length])
     if sw1 != 0x90 or sw2 != 00:
         raise InvalidCardResponseError()
 
@@ -175,7 +231,7 @@ def initWallet(connection, privateKey, pin):
     data += pin
     data += privateKey
 
-    response, sw1, sw2 = connection.transmit([0x80, 0x20, 0x00, 0x00] + [len(data)] + list(data))
+    response, sw1, sw2 = sendAPDU(connection, [0x80, 0x20, 0x00, 0x00] + [len(data)] + list(data))
     if sw1 != 0x90 or sw2 != 00:
         if sw1 == 0x6d and sw2 == 0x00:
             raise WalletError("ALREADY_INIT", 'Wallet already initialized')
@@ -186,7 +242,7 @@ def initWallet(connection, privateKey, pin):
 def wipeoutWallet(connection):
     selectApp(connection)
 
-    response, sw1, sw2 = connection.transmit([0x80, 0xF0, 0x00, 0x00])
+    response, sw1, sw2 = sendAPDU(connection, [0x80, 0xF0, 0x00, 0x00])
     if sw1 != 0x90 or sw2 != 00:
         if sw1 == 0x6d and sw2 == 0x00:
             raise WalletError("NOT_INIT", 'Wallet not initialized')
@@ -197,7 +253,7 @@ def wipeoutWallet(connection):
 def verifyPin(connection, pin):
     selectApp(connection)
 
-    response, sw1, sw2 = connection.transmit([0x80, 0x22, 0x00, 0x00] + [len(pin)] + list(pin))
+    response, sw1, sw2 = sendAPDU(connection, [0x80, 0x22, 0x00, 0x00] + [len(pin)] + list(pin))
 
     if sw1 != 0x90 or sw2 != 00:
         if sw1 == 0x6d and sw2 == 0x00:
@@ -216,7 +272,7 @@ def verifyPin(connection, pin):
 def getPinTriesLeft(connection):
     selectApp(connection)
 
-    response, sw1, sw2 = connection.transmit([0x80, 0x22, 0x80, 0x00])
+    response, sw1, sw2 = sendAPDU(connection, [0x80, 0x22, 0x80, 0x00])
     if sw1 != 0x63:
         if sw1 == 0x6d and sw2 == 0x00:
             raise WalletError("NOT_INIT", 'Wallet not initialized')
@@ -229,7 +285,7 @@ def getPinTriesLeft(connection):
 def getPublicKey(connection):
     selectApp(connection)
 
-    response, sw1, sw2 = connection.transmit( [0x80, 0x40, 0x00, 0x00] )
+    response, sw1, sw2 = sendAPDU(connection, [0x80, 0x40, 0x00, 0x00])
 
     if sw1 != 0x90 or sw2 != 00:
         if sw1 == 0x6d and sw2 == 0x00:
@@ -254,10 +310,10 @@ def sign(connection, dataToSign):
 
     for chunk in chunks:
         if firstChunk is True:
-            response, sw1, sw2 = connection.transmit( [0x80, 0xf2, 0x00, 0x00] + [len(chunk)] + list(chunk))
+            response, sw1, sw2 = sendAPDU(connection, [0x80, 0xf2, 0x00, 0x00] + [len(chunk)] + list(chunk))
             firstChunk = False;
         else:
-            response, sw1, sw2 = connection.transmit([0x80, 0xf2, 0x01, 0x00] + [len(chunk)] + list(chunk))
+            response, sw1, sw2 = sendAPDU(connection, [0x80, 0xf2, 0x01, 0x00] + [len(chunk)] + list(chunk))
 
         if sw1 != 0x90 or sw2 != 00:
             if sw1 == 0x6d and sw2 == 0x00:
@@ -267,7 +323,7 @@ def sign(connection, dataToSign):
             else:
                 raise InvalidCardResponseError()
 
-    response, sw1, sw2 = connection.transmit([0x80, 0xf2, 0x02, 0x00])
+    response, sw1, sw2 = sendAPDU(connection, [0x80, 0xf2, 0x02, 0x00])
 
     if sw1 != 0x90 or sw2 != 00:
         raise InvalidCardResponseError()
@@ -277,10 +333,11 @@ def sign(connection, dataToSign):
 
 
 def main():
+
     arguments = parse_arguments()
 
     try:
-        connection = findConnectedDevice()
+        connection = findConnectedDevice(arguments.u2f)
         if arguments.subcommand == 'initWallet':
             initWallet(connection, arguments.key, arguments.pin)
         elif arguments.subcommand == 'getPublicKey':
