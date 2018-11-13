@@ -12,7 +12,10 @@ setup(
         'zeroconf',
         'sip',
         'pillow',
-        'tlslite-ng'
+        'tlslite-ng',
+        'base58check',
+        'ecdsa',
+        
     ],
     python_requires='>=3.6',
     url='https://github.com/Secalot/secalot.utilities/tree/master/secalotControlPanel',
@@ -31,6 +34,7 @@ setup(
             'scpOtpControl=secalotCP.otpControl:main',            
             'scpEthControl=secalotCP.ethControl:main',
             'scpSslControl=secalotCP.sslControl:main',
+            'scpXrpControl=secalotCP.xrpControl:main',
         ],
     },    
 )

@@ -8,19 +8,27 @@
 import argparse
 import smartcard.System
 from collections import namedtuple
-from u2flib_host import u2f
-from u2flib_host import hid_transport
-from u2flib_host.hid_transport import HIDDevice
-from u2flib_host.utils import websafe_encode, websafe_decode
-import json
+import base58check
+import hashlib
+import ecdsa
 
+U2F_SUPPORTED = True
 
-def hidReadTimeoutOverride(dev, size, timeout=2.0):
-    return hid_transport._original_read_timeout(dev, size, 60.0)
+try:
+    from u2flib_host import u2f
+    from u2flib_host import hid_transport
+    from u2flib_host.hid_transport import HIDDevice
+    from u2flib_host.utils import websafe_encode, websafe_decode
+    import json
 
+    def hidReadTimeoutOverride(dev, size, timeout=2.0):
+        return hid_transport._original_read_timeout(dev, size, 60.0)
 
-hid_transport._original_read_timeout = hid_transport._read_timeout
-hid_transport._read_timeout = hidReadTimeoutOverride
+    hid_transport._original_read_timeout = hid_transport._read_timeout
+    hid_transport._read_timeout = hidReadTimeoutOverride
+
+except:
+    U2F_SUPPORTED = False
 
 
 READER_NAME = 'Secalot Secalot Dongle'
@@ -29,6 +37,8 @@ READER_NAME = 'Secalot Secalot Dongle'
 class NoReaderFoundError(Exception):
     pass
 
+class U2fNotInstalledError(Exception):
+    pass
 
 class InvalidCardResponseError(Exception):
     pass
@@ -46,19 +56,62 @@ AppInfo = namedtuple('AppInfo', 'version walletInitialized pinVerified')
 
 def privateKey(pkString):
 
-    if pkString.startswith('0x'):
+    if pkString.startswith('0X') or pkString.startswith('0x'):
         pkString = pkString[2:]
 
-    if len(pkString) != 64:
-        raise argparse.ArgumentTypeError('Private key should be 32 bytes long')
+    pkIsANumber = True
 
     try:
-        pkByteArray = bytearray.fromhex(pkString)
-    except Exception:
-        raise argparse.ArgumentTypeError('Invalid private key hex representation')
+        privateKey = bytearray.fromhex(pkString)
+    except:
+        pkIsANumber = False
 
-    return pkByteArray
+    if pkIsANumber == False:
+        encoding = str.encode('rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz')
+        base58String = base58check.b58decode(pkString, encoding)
 
+        if len(base58String) != 21:
+            raise argparse.ArgumentTypeError('Invalid private key')
+
+        hash = hashlib.sha256(base58String[0:-4]).digest()
+        hash = hashlib.sha256(hash).digest()
+
+        if hash[:4] != base58String[-4:]:
+            raise argparse.ArgumentTypeError('Invalid private key')
+        if base58String[0] != 0x21:
+            raise argparse.ArgumentTypeError('Invalid private key')
+
+        i=0
+
+        while True:
+            fgPrivate = base58String[1:-4] + (i).to_bytes(4, byteorder='big')
+            fgPrivate = hashlib.sha512(fgPrivate).digest()[0:32]
+            fgPrivateInt = int.from_bytes(fgPrivate, byteorder='big', signed=False)
+            if fgPrivateInt != 0 and fgPrivateInt < 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141:
+                break
+            i += 1
+
+        fgPrivate = ecdsa.SigningKey.from_secret_exponent(fgPrivateInt, curve=ecdsa.SECP256k1)
+        fgPublic = fgPrivate.get_verifying_key().to_string().hex()
+        fgPublic = '0' + str(2 + int(fgPublic, 16) % 2) + fgPublic[0:64]
+        fgPublic = bytes.fromhex(fgPublic)
+
+        i=0
+        while True:
+            addPrivate = fgPublic + (0).to_bytes(4, byteorder='big') + (i).to_bytes(4, byteorder='big')
+            addPrivate = hashlib.sha512(addPrivate).digest()[0:32]
+            addPrivateInt = int.from_bytes(addPrivate, byteorder='big', signed=False)
+            if addPrivateInt != 0 and addPrivateInt < 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141:
+                break
+            i += 1
+
+        privateKey = (addPrivateInt + fgPrivateInt) % 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+        privateKey = (privateKey).to_bytes(32, byteorder='big')
+
+    if len(privateKey) is not 32:
+        raise argparse.ArgumentTypeError('Private key should be 32 bytes long')
+
+    return privateKey
 
 def pin(string):
     if len(string) < 4 or len(string) > 32:
@@ -101,7 +154,7 @@ def parse_arguments():
     parserInitWallet = subparsers.add_parser('initWallet', help='Initialise the wallet')
     parserInitWallet._optionals.title = 'Options'
     parserInitWallet.add_argument('--key', required=True, type=privateKey,
-                                  help=('Private key as a hex string'))
+                                  help=('Private key as a XRP secret or as a hex string'))
     parserInitWallet.add_argument('--pin', required=True, type=pin, help=('New PIN-code.'))
 
     parserVerifyPin = subparsers.add_parser('verifyPin', help='Verify PIN-code')
@@ -130,6 +183,9 @@ def parse_arguments():
 def findConnectedDevice(useU2f):
 
     if useU2f:
+        if U2F_SUPPORTED is False:
+            raise U2fNotInstalledError
+
         allDevices = u2f.list_devices()
 
         device = next((device for device in allDevices if "vid_1209" and "pid_7000" in device.path.decode("utf-8")),
@@ -154,7 +210,7 @@ def findConnectedDevice(useU2f):
     return connection
 
 def sendAPDU(connection, apdu):
-    if isinstance(connection, HIDDevice):
+    if U2F_SUPPORTED and isinstance(connection, HIDDevice):
         signRequest = {}
 
         keyHandle = bytearray.fromhex('8877665544332211') + bytes(apdu)
@@ -183,7 +239,7 @@ def sendAPDU(connection, apdu):
 
 
 def selectApp(connection):
-    if not isinstance(connection, HIDDevice):
+    if not U2F_SUPPORTED or not isinstance(connection, HIDDevice):
         response, sw1, sw2 = sendAPDU(connection,
             [0x00, 0xA4, 0x04, 0x00, 0x09, 0x58, 0x52, 0x50, 0x41, 0x50, 0x50, 0x4C, 0x45, 0x54])
         if sw1 != 0x90 or sw2 != 00:
@@ -375,7 +431,8 @@ def main():
         print('Error: invalid response received from the device.')
     except WalletError as e:
         print('Error: ' + e.message)
-
+    except U2fNotInstalledError:
+        print('Error: U2F Python packages are not installed.')
 
 if __name__ == "__main__":
     main()
