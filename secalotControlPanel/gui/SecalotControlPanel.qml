@@ -6,11 +6,11 @@ import QtQuick.Window 2.0
 ApplicationWindow {
     id:mainWindow
     visible: true
-    width: 680
+    width: 700
     height: 680
 
     minimumHeight: 680
-    minimumWidth: 680
+    minimumWidth: 700
 
     font.capitalization: Font.MixedCase
 
@@ -41,6 +41,7 @@ ApplicationWindow {
         otpControl.resetGUI()
         firmwareUpdate.resetGUI()
         ethereumWallet.resetGUI()
+        xrpWallet.resetGUI()
         remoteScreen.resetGUI()
 
         swipeView.disableDeviceRelatedTabs()
@@ -55,6 +56,7 @@ ApplicationWindow {
         otpControl.resetGUI()
         firmwareUpdate.resetGUI()
         ethereumWallet.resetGUI()
+        xrpWallet.resetGUI()
         remoteScreen.resetGUI()
 
         swipeView.disableDeviceRelatedTabs()
@@ -82,22 +84,29 @@ ApplicationWindow {
             otpControl.enabled = false
             firmwareUpdate.enabled = false
             ethereumWallet.enabled = false
+            xrpWallet.enabled = false
         }
 
         function enableDeviceRelatedTabs() {
             otpControl.enabled = true
             firmwareUpdate.enabled = true
             ethereumWallet.enabled = true
+            xrpWallet.enabled = true
         }
 
         function enableFirmwareModeOnlyRelatedTabs() {
             otpControl.enabled = false
             firmwareUpdate.enabled = true
             ethereumWallet.enabled = false
+            xrpWallet.enabled = false
         }
 
         EthereumWallet {
             id: ethereumWallet
+        }
+
+        XrpWallet {
+            id: xrpWallet
         }
 
         OtpControl {
@@ -123,10 +132,13 @@ ApplicationWindow {
             text: qsTr("Ethereum")
         }
         TabButton {
+            text: qsTr("XRP")
+        }
+        TabButton {
             text: qsTr("OTP")
         }
         TabButton {
-            text: qsTr("Firmware update")
+            text: qsTr("Update")
         }
         TabButton {
             text: qsTr("RemoteScreen")

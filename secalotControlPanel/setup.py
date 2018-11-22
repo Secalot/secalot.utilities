@@ -5,7 +5,7 @@ setup(
     version='1.3',
     packages=['secalotCP'],
     install_requires=[
-        'PyQt5>=5.8',
+        'PyQt5>=5.11',
         'pyscard',
         'mnemonic',
         'qrcode',
@@ -14,8 +14,6 @@ setup(
         'pillow',
         'tlslite-ng',
         'base58check',
-        'ecdsa',
-        
     ],
     python_requires='>=3.6',
     url='https://github.com/Secalot/secalot.utilities/tree/master/secalotControlPanel',

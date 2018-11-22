@@ -31,7 +31,15 @@
 		<file>gui/DisplaySeedMessagePopup.qml</file>        
 		<file>gui/BindingMessage.qml</file>
 		<file>gui/BindingMessageForm.ui.qml</file>
-		<file>gui/BindingMessagePopup.qml</file>        
+		<file>gui/BindingMessagePopup.qml</file>
+        <file>gui/DisplayXrpSecretMessage.qml</file>
+        <file>gui/DisplayXrpSecretMessageForm.ui.qml</file>
+        <file>gui/DisplayXrpSecretMessagePopup.qml</file>
+        <file>gui/PinAndXrpSecretEntryMessage.qml</file>
+        <file>gui/PinAndXrpSecretEntryMessageForm.ui.qml</file>
+        <file>gui/PinAndXrpSecretEntryMessagePopup.qml</file>
+        <file>gui/XrpWallet.qml</file>
+        <file>gui/XrpWalletForm.ui.qml</file>
 		<file>gui/Wiring.qml</file>
 		<file>gui/icon.png</file>
 		<file>qtquickcontrols2.conf</file>		

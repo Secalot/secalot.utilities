@@ -13,9 +13,12 @@ import secalotCP.otpControl as otpControl
 import secalotCP.updateFirmware as updateFirmware
 import secalotCP.totpService as totpService
 import secalotCP.ethControl as ethControl
+import secalotCP.xrpControl as xrpControl
 import secalotCP.sslControl as sslControl
 from secalotCP.deviceFinder import DeviceFinder
 from mnemonic import Mnemonic
+import base58check
+import hashlib
 
 
 class DeviceCommunicatorException(Exception):
@@ -50,6 +53,10 @@ class DeviceCommunicatorImplementation(QObject):
     wipeoutEthereumWalletReady = pyqtSignal()
     restoreEthereumWalletReady = pyqtSignal()
     createEthereumWalletReady = pyqtSignal(str, arguments=['seed'])
+    getXrpWalletInfoReady = pyqtSignal(str, str, str, arguments=['appVersion', 'walletInitialized', 'pinVerified'])
+    wipeoutXrpWalletReady = pyqtSignal()
+    restoreXrpWalletReady = pyqtSignal()
+    createXrpWalletReady = pyqtSignal(str, arguments=['secret'])
     getSslPublicKeyFingerprintReady = pyqtSignal(str, arguments=['fingerprint'])
     getSslPublicKeyReady = pyqtSignal(str, arguments=['publicKey'])
 
@@ -262,7 +269,7 @@ class DeviceCommunicatorImplementation(QObject):
         except DeviceCommunicatorException as e:
             self.errorOccurred.emit(e.reason)
         except ethControl.InvalidCardResponseError:
-            print(self.tr("Communication failed."))
+            self.errorOccurred.emit(self.tr("Communication failed."))
         except Exception as e:
             self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
@@ -281,7 +288,7 @@ class DeviceCommunicatorImplementation(QObject):
         except DeviceCommunicatorException as e:
             self.errorOccurred.emit(e.reason)
         except ethControl.InvalidCardResponseError:
-            print(self.tr("Communication failed."))
+            self.errorOccurred.emit(self.tr("Communication failed."))
         except Exception as e:
             self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
@@ -299,7 +306,7 @@ class DeviceCommunicatorImplementation(QObject):
             try:
                 newPin = ethControl.pin(newPin)
             except Exception:
-                raise DeviceCommunicatorException(self.tr("Pin length should be between 4 and 32 bytes"))
+                raise DeviceCommunicatorException(self.tr("PIN-code length should be between 4 and 32 bytes"))
 
             try:
                 seed = ethControl.seed(seed)
@@ -315,7 +322,7 @@ class DeviceCommunicatorImplementation(QObject):
         except DeviceCommunicatorException as e:
             self.errorOccurred.emit(e.reason)
         except ethControl.InvalidCardResponseError:
-            print(self.tr("Communication failed."))
+            self.errorOccurred.emit(self.tr("Communication failed."))
         except Exception as e:
             self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
@@ -333,7 +340,7 @@ class DeviceCommunicatorImplementation(QObject):
             try:
                 newPin = ethControl.pin(newPin)
             except Exception:
-                raise DeviceCommunicatorException(self.tr("Pin length should be between 4 and 32 bytes"))
+                raise DeviceCommunicatorException(self.tr("PIN-code length should be between 4 and 32 bytes"))
 
             mnemonic = EnglishMnemonic('english')
 
@@ -349,7 +356,138 @@ class DeviceCommunicatorImplementation(QObject):
         except DeviceCommunicatorException as e:
             self.errorOccurred.emit(e.reason)
         except ethControl.InvalidCardResponseError:
-            print(self.tr("Communication failed."))
+            self.errorOccurred.emit(self.tr("Communication failed."))
+        except Exception as e:
+            self.errorOccurred.emit(self.tr("An error occurred."))
+        finally:
+            self.disconnectFromDevice(connection)
+
+    @pyqtSlot()
+    def getXrpWalletInfo(self):
+        connection = None
+        try:
+            connection = self.connectToDevice()
+
+            appExists = True
+
+            try:
+                info = xrpControl.getInfo(connection)
+            except:
+                appExists = False
+
+            if appExists == False:
+                self.getXrpWalletInfoReady.emit('0.0', self.tr('unknown'), self.tr('unknown'))
+            else:
+                if info.walletInitialized == True:
+                    initStatus = self.tr('initialized')
+                else:
+                    initStatus = self.tr('not initialized')
+
+                if info.pinVerified == True:
+                    pinStatus = self.tr('verified')
+                else:
+                    pinStatus = self.tr('unverified')
+
+                self.getXrpWalletInfoReady.emit(info.version, initStatus, pinStatus)
+
+        except DeviceCommunicatorException as e:
+            self.errorOccurred.emit(e.reason)
+        except xrpControl.InvalidCardResponseError:
+            self.errorOccurred.emit(self.tr("Communication failed."))
+        except Exception as e:
+            self.errorOccurred.emit(self.tr("An error occurred."))
+        finally:
+            self.disconnectFromDevice(connection)
+
+    @pyqtSlot()
+    def wipeoutXrpWallet(self):
+        connection = None
+        try:
+            connection = self.connectToDevice()
+
+            xrpControl.wipeoutWallet(connection)
+
+            self.wipeoutXrpWalletReady.emit()
+
+        except DeviceCommunicatorException as e:
+            self.errorOccurred.emit(e.reason)
+        except xrpControl.InvalidCardResponseError:
+            self.errorOccurred.emit(self.tr("Communication failed."))
+        except Exception as e:
+            self.errorOccurred.emit(self.tr("An error occurred."))
+        finally:
+            self.disconnectFromDevice(connection)
+
+    @pyqtSlot(str, str, str)
+    def restoreXrpWallet(self, privateKey, newPin, repeatPin):
+        connection = None
+        try:
+            connection = self.connectToDevice()
+
+            if newPin != repeatPin:
+                raise DeviceCommunicatorException(self.tr("PIN-codes do not match"))
+
+            try:
+                newPin = xrpControl.pin(newPin)
+            except Exception:
+                raise DeviceCommunicatorException(self.tr("PIN-code length should be between 4 and 32 bytes"))
+
+            try:
+                privateKey = xrpControl.privateKey(privateKey)
+            except Exception:
+                raise DeviceCommunicatorException(self.tr("Invalid XRP secret format.\n"
+                                                          "It should either be a proper base58\n"
+                                                          "encoded string starting with an \"s\",\n"
+                                                          "or a hex string of 32 bytes representing\n"
+                                                          "a raw private key."))
+
+            xrpControl.initWallet(connection, privateKey, newPin)
+
+            self.restoreXrpWalletReady.emit()
+
+        except DeviceCommunicatorException as e:
+            self.errorOccurred.emit(e.reason)
+        except xrpControl.InvalidCardResponseError:
+            self.errorOccurred.emit(self.tr("Communication failed."))
+        except Exception as e:
+            self.errorOccurred.emit(self.tr("An error occurred."))
+        finally:
+            self.disconnectFromDevice(connection)
+
+    @pyqtSlot(str, str)
+    def createXrpWallet(self, newPin, repeatPin):
+        connection = None
+        try:
+            connection = self.connectToDevice()
+
+            if newPin != repeatPin:
+                raise DeviceCommunicatorException(self.tr("PIN-codes do not match"))
+
+            try:
+                newPin = xrpControl.pin(newPin)
+            except Exception:
+                raise DeviceCommunicatorException(self.tr("PIN-code length should be between 4 and 32 bytes"))
+
+            entropy = xrpControl.getRandom(connection, 16)
+
+            secret = bytes.fromhex('21') + bytearray(entropy)
+            hash = hashlib.sha256(secret).digest()
+            hash = hashlib.sha256(hash).digest()
+            secret += hash[0:4]
+
+            encoding = str.encode('rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz')
+            secret = base58check.b58encode(secret, encoding)
+
+            privateKey = xrpControl.PrivateKey(bytearray(entropy), 'secret')
+
+            xrpControl.initWallet(connection, privateKey, newPin)
+
+            self.createXrpWalletReady.emit(secret.decode("ascii"))
+
+        except DeviceCommunicatorException as e:
+            self.errorOccurred.emit(e.reason)
+        except xrpControl.InvalidCardResponseError:
+            self.errorOccurred.emit(self.tr("Communication failed."))
         except Exception as e:
             self.errorOccurred.emit(self.tr("An error occurred."))
         finally:
@@ -492,6 +630,10 @@ class DeviceCommunicator(QObject):
     wipeoutEthereumWalletReady = pyqtSignal()
     restoreEthereumWalletReady = pyqtSignal()
     createEthereumWalletReady = pyqtSignal(str, arguments=['seed'])
+    getXrpWalletInfoReady = pyqtSignal(str, str, str, arguments=['appVersion', 'walletInitialized', 'pinVerified'])
+    wipeoutXrpWalletReady = pyqtSignal()
+    restoreXrpWalletReady = pyqtSignal()
+    createXrpWalletReady = pyqtSignal(str, arguments=['secret'])
     getSslPublicKeyFingerprintReady = pyqtSignal(str, arguments=['fingerprint'])
     getSslPublicKeyReady = pyqtSignal(str, arguments=['publicKey'])
 
@@ -517,6 +659,10 @@ class DeviceCommunicator(QObject):
         self.implementation.wipeoutEthereumWalletReady.connect(self.wipeoutEthereumWalletReady)
         self.implementation.restoreEthereumWalletReady.connect(self.restoreEthereumWalletReady)
         self.implementation.createEthereumWalletReady.connect(self.createEthereumWalletReady)
+        self.implementation.getXrpWalletInfoReady.connect(self.getXrpWalletInfoReady)
+        self.implementation.wipeoutXrpWalletReady.connect(self.wipeoutXrpWalletReady)
+        self.implementation.restoreXrpWalletReady.connect(self.restoreXrpWalletReady)
+        self.implementation.createXrpWalletReady.connect(self.createXrpWalletReady)
         self.implementation.getSslPublicKeyFingerprintReady.connect(self.getSslPublicKeyFingerprintReady)
         self.implementation.getSslPublicKeyReady.connect(self.getSslPublicKeyReady)
 
@@ -583,6 +729,24 @@ class DeviceCommunicator(QObject):
     @pyqtSlot(str, str)
     def createEthereumWallet(self, newPin, repeatPin):
         QMetaObject.invokeMethod(self.implementation, "createEthereumWallet", Qt.QueuedConnection, Q_ARG(str, newPin),
+                                 Q_ARG(str, repeatPin))
+
+    @pyqtSlot()
+    def getXrpWalletInfo(self):
+        QMetaObject.invokeMethod(self.implementation, "getXrpWalletInfo", Qt.QueuedConnection)
+
+    @pyqtSlot()
+    def wipeoutXrpWallet(self):
+        QMetaObject.invokeMethod(self.implementation, "wipeoutXrpWallet", Qt.QueuedConnection)
+
+    @pyqtSlot(str, str, str)
+    def restoreXrpWallet(self, privateKey, newPin, repeatPin):
+        QMetaObject.invokeMethod(self.implementation, "restoreXrpWallet", Qt.QueuedConnection, Q_ARG(str, privateKey),
+                                 Q_ARG(str, newPin), Q_ARG(str, repeatPin))
+
+    @pyqtSlot(str, str)
+    def createXrpWallet(self, newPin, repeatPin):
+        QMetaObject.invokeMethod(self.implementation, "createXrpWallet", Qt.QueuedConnection, Q_ARG(str, newPin),
                                  Q_ARG(str, repeatPin))
 
     @pyqtSlot()

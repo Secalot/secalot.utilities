@@ -5,7 +5,7 @@ import QtQuick.Layouts 1.11
 ColumnLayout {
     id: columnLayout
 
-    property alias seedTextArea: seedTextArea
+    property alias secretTextArea: secretTextArea
     property alias cancelButton: cancelButton
     property alias restoreButton: restoreButton
     property alias newPinTextField: newPinTextField
@@ -49,12 +49,12 @@ ColumnLayout {
     }
 
     GroupBox {
-        id: seedGroupBox
+        id: secretGroupBox
         Layout.fillWidth: true
-        title: qsTr("Enter your wallet's seed")
+        title: qsTr("Enter your wallet's XRP secret")
 
         ColumnLayout {
-            id: seedColumnLayout
+            id: secretColumnLayout
             anchors.fill: parent
 
             Item {
@@ -70,7 +70,7 @@ ColumnLayout {
 
                     clip: true
                     TextArea {
-                        id: seedTextArea
+                        id: secretTextArea
                         wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                         clip: true
                     }

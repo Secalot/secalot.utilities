@@ -10,7 +10,8 @@ import smartcard.System
 from collections import namedtuple
 import base58check
 import hashlib
-import ecdsa
+from collections import namedtuple
+
 
 U2F_SUPPORTED = True
 
@@ -19,6 +20,8 @@ try:
     from u2flib_host import hid_transport
     from u2flib_host.hid_transport import HIDDevice
     from u2flib_host.utils import websafe_encode, websafe_decode
+    from u2flib_host.hid_transport import U2FHIDError
+    from u2flib_host.exc import DeviceError
     import json
 
     def hidReadTimeoutOverride(dev, size, timeout=2.0):
@@ -33,6 +36,8 @@ except:
 
 READER_NAME = 'Secalot Secalot Dongle'
 
+PrivateKey = namedtuple("PrivateKey", "value type")
+
 
 class NoReaderFoundError(Exception):
     pass
@@ -42,7 +47,6 @@ class U2fNotInstalledError(Exception):
 
 class InvalidCardResponseError(Exception):
     pass
-
 
 class WalletError(Exception):
     def __init__(self, reasonCode, message):
@@ -81,37 +85,15 @@ def privateKey(pkString):
         if base58String[0] != 0x21:
             raise argparse.ArgumentTypeError('Invalid private key')
 
-        i=0
+        privateKey = base58String[1:-4]
+        type = 'secret'
 
-        while True:
-            fgPrivate = base58String[1:-4] + (i).to_bytes(4, byteorder='big')
-            fgPrivate = hashlib.sha512(fgPrivate).digest()[0:32]
-            fgPrivateInt = int.from_bytes(fgPrivate, byteorder='big', signed=False)
-            if fgPrivateInt != 0 and fgPrivateInt < 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141:
-                break
-            i += 1
+    else:
+        if len(privateKey) is not 32:
+            raise argparse.ArgumentTypeError('Private key should be 32 bytes long')
+        type = 'privateKey'
 
-        fgPrivate = ecdsa.SigningKey.from_secret_exponent(fgPrivateInt, curve=ecdsa.SECP256k1)
-        fgPublic = fgPrivate.get_verifying_key().to_string().hex()
-        fgPublic = '0' + str(2 + int(fgPublic, 16) % 2) + fgPublic[0:64]
-        fgPublic = bytes.fromhex(fgPublic)
-
-        i=0
-        while True:
-            addPrivate = fgPublic + (0).to_bytes(4, byteorder='big') + (i).to_bytes(4, byteorder='big')
-            addPrivate = hashlib.sha512(addPrivate).digest()[0:32]
-            addPrivateInt = int.from_bytes(addPrivate, byteorder='big', signed=False)
-            if addPrivateInt != 0 and addPrivateInt < 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141:
-                break
-            i += 1
-
-        privateKey = (addPrivateInt + fgPrivateInt) % 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
-        privateKey = (privateKey).to_bytes(32, byteorder='big')
-
-    if len(privateKey) is not 32:
-        raise argparse.ArgumentTypeError('Private key should be 32 bytes long')
-
-    return privateKey
+    return PrivateKey(privateKey, type)
 
 def pin(string):
     if len(string) < 4 or len(string) > 32:
@@ -224,7 +206,18 @@ def sendAPDU(connection, apdu):
         signRequest = json.dumps(signRequest)
 
         with connection:
-            response = u2f.authenticate(connection, signRequest, "http://localhost")
+            apduSent = False
+
+            while apduSent == False:
+                try:
+                    response = u2f.authenticate(connection, signRequest, "http://localhost")
+                    apduSent = True
+                except DeviceError as e:
+                    if isinstance(e, U2FHIDError) and e.code is 0x06:
+                        pass
+                    else:
+                        raise
+
             response = list(websafe_decode(response["signatureData"]))
 
         if len(response) < 2:
@@ -283,11 +276,16 @@ def initWallet(connection, privateKey, pin):
 
     data = bytearray()
 
+    if privateKey.type is 'secret':
+        header = [0x80, 0x20, 0x00, 0x01]
+    else:
+        header = [0x80, 0x20, 0x00, 0x00]
+
     data.append(len(pin))
     data += pin
-    data += privateKey
+    data += privateKey.value
 
-    response, sw1, sw2 = sendAPDU(connection, [0x80, 0x20, 0x00, 0x00] + [len(data)] + list(data))
+    response, sw1, sw2 = sendAPDU(connection, header + [len(data)] + list(data))
     if sw1 != 0x90 or sw2 != 00:
         if sw1 == 0x6d and sw2 == 0x00:
             raise WalletError("ALREADY_INIT", 'Wallet already initialized')
@@ -382,7 +380,10 @@ def sign(connection, dataToSign):
     response, sw1, sw2 = sendAPDU(connection, [0x80, 0xf2, 0x02, 0x00])
 
     if sw1 != 0x90 or sw2 != 00:
-        raise InvalidCardResponseError()
+        if sw1 == 0x64 or sw2 == 0x01:
+            raise WalletError("TIME_OUT", 'Signing operation timer out.')
+        else:
+            raise InvalidCardResponseError()
 
 
     return bytes(response)

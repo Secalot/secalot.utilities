@@ -103,6 +103,27 @@ Item {
     }
 
     Connections {
+        target: xrpWallet
+
+        onWipeoutRequested: {
+
+            deviceCommunicator.wipeoutXrpWallet()
+        }
+
+        onRestoreRequested: {
+
+            deviceCommunicator.restoreXrpWallet(secret, newPin, repeatPin)
+        }
+
+        onCreateRequested: {
+
+            deviceCommunicator.createXrpWallet(newPin, repeatPin)
+        }
+
+    }
+
+
+    Connections {
         target: remoteScreen
 
         onMobilePhoneBindingStarted: {
@@ -133,6 +154,7 @@ Item {
             if( readerType === 'firmware') {
                 deviceCommunicator.getOTPSettings()
                 deviceCommunicator.getEthereumWalletInfo()
+                deviceCommunicator.getXrpWalletInfo()
                 deviceCommunicator.getSslPublicKeyFingerprint()
             }
 
@@ -214,6 +236,26 @@ Item {
             ethereumWallet.displaySeed(seed)
             deviceCommunicator.getEthereumWalletInfo()
         }
+
+        onGetXrpWalletInfoReady: {
+            xrpWallet.setWalletInfo(appVersion, walletInitialized, pinVerified)
+        }
+
+        onWipeoutXrpWalletReady: {
+            deviceCommunicator.getXrpWalletInfo()
+        }
+
+        onRestoreXrpWalletReady: {
+            xrpWallet.closePinAndXrpSecretEntryMessagePopup()
+            deviceCommunicator.getXrpWalletInfo()
+        }
+
+        onCreateXrpWalletReady: {
+            xrpWallet.closePinEntryMessagePopup()
+            xrpWallet.displayXrpSecret(secret)
+            deviceCommunicator.getXrpWalletInfo()
+        }
+
 
         onGetSslPublicKeyFingerprintReady: {
             remoteScreen.supportedDeviceConnected()
