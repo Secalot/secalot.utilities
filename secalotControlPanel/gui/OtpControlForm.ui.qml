@@ -18,9 +18,9 @@ Item {
     ColumnLayout {
         id: mainColumnLayout
         anchors.left: parent.left
-        anchors.leftMargin: 150
+        anchors.leftMargin: 170
         anchors.right: parent.right
-        anchors.rightMargin: 150
+        anchors.rightMargin: 170
         spacing: 20
         anchors.verticalCenter: parent.verticalCenter
 

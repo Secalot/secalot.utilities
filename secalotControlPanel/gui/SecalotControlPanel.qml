@@ -6,15 +6,15 @@ import QtQuick.Window 2.0
 ApplicationWindow {
     id:mainWindow
     visible: true
-    width: 700
+    width: 730
     height: 680
 
     minimumHeight: 680
-    minimumWidth: 700
+    minimumWidth: 730
 
     font.capitalization: Font.MixedCase
 
-    title: qsTr("Secalot Control Panel 1.3")
+    title: qsTr("Secalot Control Panel 1.4")
 
     onClosing: {
          close.accepted = false
