@@ -21,7 +21,7 @@ try:
     from u2flib_host.hid_transport import HIDDevice
     from u2flib_host.utils import websafe_encode, websafe_decode
     from u2flib_host.hid_transport import U2FHIDError
-    from u2flib_host.exc import DeviceError
+    from u2flib_host.exc import DeviceError, APDUError
     import json
 
     def hidReadTimeoutOverride(dev, size, timeout=2.0):
@@ -217,11 +217,21 @@ def sendAPDU(connection, apdu):
                         pass
                     else:
                         raise
+                except APDUError as e:
+                    if e.code == 0x6985:
+                        pass
+                    else:
+                        raise
 
             response = list(websafe_decode(response["signatureData"]))
 
-        if len(response) < 2:
+        if len(response) < 7:
             raise InvalidCardResponseError()
+
+        if response[0] != 0x01 or response[1] != 0x00 or response[2] != 0x00 or response[3] != 0x00 or response[4] != 0x00:
+            raise InvalidCardResponseError()
+
+        response = response[5:]
 
         sw2 = response.pop()
         sw1 = response.pop()
