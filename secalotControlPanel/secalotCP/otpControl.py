@@ -24,6 +24,8 @@ class InvalidCardResponseError(Exception):
 def otp_key(string):
     if string.startswith('0x'):
         string = string[2:]
+        if len(string) % 2 != 0:
+            raise argparse.ArgumentTypeError('The value should contain an even number of digits')
         integer = int(string, 16)
         bytes = integer.to_bytes(int(len(string) / 2), 'big')
     else:
@@ -31,7 +33,7 @@ def otp_key(string):
         string = string.upper()
         bytes = base64.b32decode(string)
 
-    if len(string) < 20 or len(string) > 64 or len(string) % 2 != 0:
+    if len(bytes) < 10 or len(bytes) > 32:
         raise argparse.ArgumentTypeError('The value should be 10 to 32 bytes long')
 
     return bytes

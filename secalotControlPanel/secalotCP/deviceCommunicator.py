@@ -119,7 +119,9 @@ class DeviceCommunicatorImplementation(QObject):
             try:
                 key = otpControl.otp_key(key)
             except Exception:
-                raise DeviceCommunicatorException(self.tr("Invalid Key format. The key should be 10 to 32 bytes long."))
+                raise DeviceCommunicatorException(self.tr("Invalid Key format. The key should be either a hex string\n"
+                                                          "starting with \"0x\" or a valid base32 string.\n"
+                                                          "The key must be 10 to 32 bytes in size."))
 
             connection = self.connectToDevice()
 
