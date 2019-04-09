@@ -14,7 +14,7 @@ ApplicationWindow {
 
     font.capitalization: Font.MixedCase
 
-    title: qsTr("Secalot Control Panel 1.5")
+    title: qsTr("Secalot Control Panel 1.6")
 
     onClosing: {
          close.accepted = false
