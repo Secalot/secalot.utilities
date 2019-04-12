@@ -51,7 +51,7 @@ ColumnLayout {
     GroupBox {
         id: secretGroupBox
         Layout.fillWidth: true
-        title: qsTr("Enter your wallet's XRP secret")
+        title: qsTr("Enter secret of your XRP wallet")
 
         ColumnLayout {
             id: secretColumnLayout

@@ -12,7 +12,7 @@ ColumnLayout {
 
     Label {
         id: warningLabel
-        text: qsTr("<b>Your new wallet's XRP secret is written below. Please save it in a safe place, so you would be able to restore your wallet in case your Secalot device gets stolen or damaged.
+        text: qsTr("<b>The secret of your new XRP wallet is written below. Please save it in a safe place, so you would be able to restore your wallet in case your Secalot device gets stolen or damaged.
 <br>Please note that:
 <br>1. Anybody getting access to your XRP secret would have access to you wallet and everything on it.
 <br>2. It is safer to store your XRP secret in a non-electronic form, for example on paper.</b>")
